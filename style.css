@@ -199,7 +199,7 @@ html, body {
    ============================================================ */
 .bg-information-container {
     position: absolute;
-    top: clamp(8%, 15vw, 20%);        /* 8% on small, scales up, max 20% on large */
+    top: clamp(20%, 15vw, 20%);        /* 8% on small, scales up, max 20% on large */
     left: 50%;
     transform: translateX(-50%);
     width: clamp(280px, 50vw, 1000px);
