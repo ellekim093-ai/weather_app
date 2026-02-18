@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+
+  <meta charset="UTF-8">
+  <title>Smart Weather Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="weather-app">
+    <h1>🌤️ Weather App</h1>
+
+    <div class="search">
+      <input type="text" id="cityInput" placeholder="Enter city name">
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <div class="weather-info">
+      <h2 id="cityName">City</h2>
+      <img id="icon" src="" alt="Weather Icon">
+
+      <p id="temperature">Temperature: -- °C</p>
+      <p id="humidity">Humidity: -- %</p>
+      <p id="condition">Condition: --</p>
+    </div>
+
+    <p id="errorMsg"></p>
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
