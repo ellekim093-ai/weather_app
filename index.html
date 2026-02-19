@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather Platform</title>
   <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="pc-click-fix.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
-  
 </head>
 <body>
 
@@ -19,241 +17,326 @@
       <p>Check the latest weather updates here.</p>
     </div>
 
-    <div class="search-container inside">
-          <span class="material-symbols-outlined search-icon">search</span>
-          <input type="text" id="cityInput" placeholder="Search city or country" class="search-bar">
-          <div id="searchHistoryDropdown" class="search-history-dropdown"></div>
+    <div class="search-container">
+      <div class="search-inner">
+        <span class="material-symbols-outlined search-icon">search</span>
+        <input type="text" id="cityInput" placeholder="Search city or country" class="search-bar">
+        <div id="searchHistoryDropdown" class="search-history-dropdown"></div>
       </div>
+    </div>
 
-      <p id="errorMsg" class="error-msg"></p>
+    <p id="errorMsg" class="error-msg"></p>
 
-        <div class="panels-container inside">
-            <div class="panel" id="panel1">Loading...</div>
-            <div class="panel" id="panel2">Loading...</div>
-            <div class="panel" id="panel3">Loading...</div>
-            <div class="panel" id="panel4">Loading...</div>
-            <div class="panel" id="panel5">Loading...</div>
-            <div class="panel" id="panel6">Loading...</div>
-        </div>
+    <!-- UNIT TOGGLE -->
+    <div class="unit-toggle-wrapper">
+      <div class="unit-toggle">
+        <button class="unit-btn active" id="btnCelsius" onclick="setUnit('C')">°C</button>
+        <button class="unit-btn" id="btnFahrenheit" onclick="setUnit('F')">°F</button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT ROW: bg-info + 14-day calendar -->
+    <div class="content-row">
+
+      <!-- LEFT COLUMN: bg-information + sun/moon panel -->
+      <div class="left-column">
 
         <div class="bg-information-container">
-
-        <div class="arch-info">
-        <div class="arch-content">
-        <h2 id="cityName">
-        <span class="location-icon">
-        <span class="material-symbols-outlined">location_on</span>
-        </span>
-        <span id="cityText">Manila</span>
-        </h2>
-        <p id="temperature">
-        <span class="material-symbols-outlined temp-icon">device_thermostat</span>
-        <span id="tempValue">--°C</span>
-        </p>
-        <div id="weatherIconContainer" class="weather-icon-container"></div>
-        <p id="condition">--</p>
-        <div class="arch-date" id="currentDateTime">Loading...</div>
-        </div>
-       
-
-           <div class="weather-conditions-container">
-              <div class="weather-condition-box humidity-condition">
-                  <span class="material-symbols-outlined condition-icon">water_drop</span>
-                  <div class="condition-label">Humidity</div>
-                  <div class="condition-value" id="humidityBox">--%</div>
-                  <div class="condition-status" id="humidityStatus"></div>
-              </div>
-              <div class="weather-condition-box uv-condition">
-                  <span class="material-symbols-outlined condition-icon">sunny</span>
-                  <div class="condition-label">UV Index</div>
-                  <div class="condition-value" id="uvBox">--</div>
-                  <div class="condition-status" id="uvStatus"></div>
-              </div>
-              <div class="weather-condition-box wind-condition">
-                  <span class="material-symbols-outlined condition-icon">air</span>
-                  <div class="condition-label">Wind</div>
-                  <div class="condition-value" id="windBox">-- m/s</div>
-              </div>
-              <div class="weather-condition-box visibility-condition">
-                  <span class="material-symbols-outlined condition-icon">visibility</span>
-                  <div class="condition-label">Visibility</div>
-                  <div class="condition-value" id="visibilityBox">-- km</div>
-              </div>
+          <!-- ARCH INFO -->
+          <div class="arch-info">
+            <div class="arch-content">
+              <h2 id="cityName">
+                <span class="location-icon">
+                  <span class="material-symbols-outlined">location_on</span>
+                </span>
+                <span id="cityText">Manila</span>
+              </h2>
+              <p id="temperature">
+                <span class="material-symbols-outlined temp-icon">device_thermostat</span>
+                <span id="tempValue">--°C</span>
+              </p>
+              <div id="weatherIconContainer" class="weather-icon-container"></div>
+              <p id="condition">--</p>
+              <div class="arch-date" id="currentDateTime">Loading...</div>
+            </div>
           </div>
+
+          <!-- WEATHER CONDITIONS — 6 boxes -->
+          <div class="weather-conditions-container">
+
+            <div class="weather-condition-box humidity-condition">
+              <span class="material-symbols-outlined condition-icon">water_drop</span>
+              <div class="condition-label">Humidity</div>
+              <div class="condition-value" id="humidityBox">--%</div>
+              <div class="condition-status" id="humidityStatus"></div>
+            </div>
+
+            <div class="weather-condition-box uv-condition">
+              <span class="material-symbols-outlined condition-icon">sunny</span>
+              <div class="condition-label">UV Index</div>
+              <div class="condition-value" id="uvBox">--</div>
+              <div class="condition-status" id="uvStatus"></div>
+            </div>
+
+            <div class="weather-condition-box wind-condition">
+              <span class="material-symbols-outlined condition-icon">air</span>
+              <div class="condition-label">Wind</div>
+              <div class="condition-value" id="windBox">-- m/s</div>
+            </div>
+
+            <div class="weather-condition-box visibility-condition">
+              <span class="material-symbols-outlined condition-icon">visibility</span>
+              <div class="condition-label">Visibility</div>
+              <div class="condition-value" id="visibilityBox">-- km</div>
+            </div>
+
+            <div class="weather-condition-box pressure-condition">
+              <span class="material-symbols-outlined condition-icon">speed</span>
+              <div class="condition-label">Pressure</div>
+              <div class="condition-value" id="pressureBox">-- hPa</div>
+              <div class="condition-status" id="pressureStatus"></div>
+            </div>
+
+            <div class="weather-condition-box feelslike-condition">
+              <span class="material-symbols-outlined condition-icon">thermometer</span>
+              <div class="condition-label">Feels Like</div>
+              <div class="condition-value" id="feelsLikeBox">--°C</div>
+              <div class="condition-status" id="feelsLikeStatus"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUN & MOON PANEL (new feature) -->
+        <div class="sun-moon-panel">
+          <div class="sun-moon-header">
+            <span class="material-symbols-outlined">wb_twilight</span>
+            <span>Sun &amp; Moon</span>
+          </div>
+
+          <!-- Sun Arc -->
+          <div class="sun-arc-wrapper">
+            <svg class="sun-arc-svg" viewBox="0 0 100 55" preserveAspectRatio="none">
+              <!-- background arc -->
+              <path d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round"/>
+              <!-- progress arc (drawn via JS via clip) -->
+              <path id="sunArcPath" d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="url(#sunGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="150" stroke-dashoffset="150"/>
+              <defs>
+                <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"   stop-color="#f97316"/>
+                  <stop offset="50%"  stop-color="#facc15"/>
+                  <stop offset="100%" stop-color="#f97316"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <!-- Moving sun dot -->
+            <div class="sun-arc-dot" id="sunArcDot">☀️</div>
+            <!-- Labels -->
+            <div class="sun-label left">🌅 <span id="sunriseTime">--:--</span></div>
+            <div class="sun-label right">🌇 <span id="sunsetTime">--:--</span></div>
+          </div>
+
+          <!-- Status text -->
+          <div class="sun-status-text" id="sunStatusText">Loading...</div>
+
+          <!-- Info row -->
+          <div class="sun-moon-info-row">
+            <div class="sun-moon-info-box">
+              <span class="material-symbols-outlined smi-icon">schedule</span>
+              <div class="smi-content">
+                <div class="smi-label">Daylight</div>
+                <div class="smi-value" id="daylightDuration">--h --m</div>
+              </div>
+            </div>
+            <div class="sun-moon-info-box">
+              <span class="moon-phase-icon" id="moonPhaseIcon">🌕</span>
+              <div class="smi-content">
+                <div class="smi-label">Moon Phase</div>
+                <div class="smi-value" id="moonPhaseLabel">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end left-column -->
+
+      <!-- 14-DAY FORECAST CALENDAR -->
+      <div class="forecast-calendar" id="forecastCalendar">
+        <div class="calendar-header">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span>14-Day Forecast</span>
+          <span class="cal-hint">Click a day</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
+          <!-- filled by JS -->
+        </div>
       </div>
+
+    </div><!-- end content-row -->
+
   </main>
-
-
 
   <!-- Globe Toggle Button -->
   <button class="globe-toggle-btn" id="globeToggle" onclick="toggleGlobeView()">🌍</button>
 
   <!-- Globe Section -->
   <section class="globe-section" id="globeSection">
-      <div class="globe-header">
-          <h2>🌍 Interactive Weather Globe</h2>
-          <button class="globe-close-btn" onclick="toggleGlobeView()">×</button>
-      </div>
-      
-      <div class="globe-content">
-          <div class="globe-container">
-              <div id="globeViz"></div>
-              
-              <!-- Globe Controls Overlay -->
-              <div class="globe-controls-overlay">
-                  <button class="globe-control-btn zoom-in" id="globeZoomIn" title="Zoom In (+)">
-                      <span class="material-symbols-outlined">add</span>
-                  </button>
-                  <button class="globe-control-btn zoom-out" id="globeZoomOut" title="Zoom Out (-)">
-                      <span class="material-symbols-outlined">remove</span>
-                  </button>
-                  <button class="globe-control-btn pause-rotation" id="globePauseRotation" title="Pause Rotation (Space)">
-                      <span class="material-symbols-outlined" id="pauseIcon">pause</span>
-                  </button>
-                  
-                  <div class="globe-arrow-controls">
-                      <button class="globe-arrow-btn up" id="globeRotateUp" title="Rotate Up (↑)">
-                          <span class="material-symbols-outlined">arrow_upward</span>
-                      </button>
-                      <div class="globe-arrow-middle">
-                          <button class="globe-arrow-btn left" id="globeRotateLeft" title="Rotate Left (←)">
-                              <span class="material-symbols-outlined">arrow_back</span>
-                          </button>
-                          <button class="globe-arrow-btn right" id="globeRotateRight" title="Rotate Right (→)">
-                              <span class="material-symbols-outlined">arrow_forward</span>
-                          </button>
-                      </div>
-                      <button class="globe-arrow-btn down" id="globeRotateDown" title="Rotate Down (↓)">
-                          <span class="material-symbols-outlined">arrow_downward</span>
-                      </button>
-                  </div>
-              </div>
-              
-              <div class="globe-info-overlay">
-                  <div class="globe-info-item">
-                      <span class="material-symbols-outlined">location_on</span>
-                      <div>
-                          <div class="globe-info-label">Location</div>
-                          <div class="globe-info-value" id="globeCity">Click a city on the globe</div>
-                      </div>
-                  </div>
-                  <div class="globe-info-item">
-                      <span class="material-symbols-outlined">explore</span>
-                      <div>
-                          <div class="globe-info-label">Coordinates</div>
-                          <div class="globe-info-value" id="globeCoords">--° , --°</div>
-                      </div>
-                  </div>
-              </div>
-              <div class="globe-instructions">
-                  🖱️ Click city to get weather • 🖐️ Drag to rotate • 🖱️ Scroll to zoom • Space to pause
-              </div>
+    <div class="globe-header">
+      <h2>🌍 Interactive Weather Globe</h2>
+      <button class="globe-close-btn" onclick="toggleGlobeView()">×</button>
+    </div>
+
+    <div class="globe-content">
+      <div class="globe-container">
+        <div id="globeViz"></div>
+
+        <div class="globe-controls-overlay">
+          <button class="globe-control-btn zoom-in" id="globeZoomIn" title="Zoom In (+)">
+            <span class="material-symbols-outlined">add</span>
+          </button>
+          <button class="globe-control-btn zoom-out" id="globeZoomOut" title="Zoom Out (-)">
+            <span class="material-symbols-outlined">remove</span>
+          </button>
+          <button class="globe-control-btn pause-rotation" id="globePauseRotation" title="Pause Rotation (Space)">
+            <span class="material-symbols-outlined" id="pauseIcon">pause</span>
+          </button>
+
+          <div class="globe-arrow-controls">
+            <button class="globe-arrow-btn up" id="globeRotateUp" title="Rotate Up (↑)">
+              <span class="material-symbols-outlined">arrow_upward</span>
+            </button>
+            <div class="globe-arrow-middle">
+              <button class="globe-arrow-btn left" id="globeRotateLeft" title="Rotate Left (←)">
+                <span class="material-symbols-outlined">arrow_back</span>
+              </button>
+              <button class="globe-arrow-btn right" id="globeRotateRight" title="Rotate Right (→)">
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </div>
+            <button class="globe-arrow-btn down" id="globeRotateDown" title="Rotate Down (↓)">
+              <span class="material-symbols-outlined">arrow_downward</span>
+            </button>
           </div>
-          
-          <!-- Weather Info Boxes beside Globe -->
-          <div class="globe-weather-boxes">
+        </div>
 
-              <!-- Loading / Empty state -->
-              <div class="globe-empty-state" id="globeEmptyState">
-                  <div style="font-size:48px; text-align:center; margin-bottom:15px;">🌍</div>
-                  <p style="color:rgba(255,255,255,0.7); text-align:center; font-size:14px; line-height:1.6;">
-                      Click on any city or location on the globe to see live weather conditions!
-                  </p>
-              </div>
-              
-              <!-- Temperature Box -->
-              <div class="globe-weather-box" id="globeTempBox" style="display:none;">
-                  <span class="material-symbols-outlined globe-box-icon">device_thermostat</span>
-                  <div class="globe-box-content">
-                      <div class="globe-box-label">Temperature</div>
-                      <div class="globe-box-value" id="globeTempValue">--°C</div>
-                      <div class="globe-box-detail" id="globeFeelsLike">Feels like --°C</div>
-                  </div>
-              </div>
-              
-              <!-- Condition Box -->
-              <div class="globe-weather-box" id="globeConditionBox" style="display:none;">
-                  <span class="material-symbols-outlined globe-box-icon" id="globeCondIcon">wb_sunny</span>
-                  <div class="globe-box-content">
-                      <div class="globe-box-label">Condition</div>
-                      <div class="globe-box-value" id="globeCondValue">--</div>
-                      <div class="globe-box-detail" id="globeCondDetail">--</div>
-                  </div>
-              </div>
-              
-              <!-- Wind Box -->
-              <div class="globe-weather-box" id="globeWindBox" style="display:none;">
-                  <span class="material-symbols-outlined globe-box-icon">air</span>
-                  <div class="globe-box-content">
-                      <div class="globe-box-label">Wind</div>
-                      <div class="globe-box-value" id="globeWindValue">-- m/s</div>
-                      <div class="globe-box-detail" id="globeWindDir">Direction: --°</div>
-                  </div>
-              </div>
-              
-              <!-- Humidity Box -->
-              <div class="globe-weather-box" id="globeHumidityBox" style="display:none;">
-                  <span class="material-symbols-outlined globe-box-icon">water_drop</span>
-                  <div class="globe-box-content">
-                      <div class="globe-box-label">Humidity</div>
-                      <div class="globe-box-value" id="globeHumidValue">--%</div>
-                      <div class="globe-box-detail" id="globePressure">Pressure: -- hPa</div>
-                  </div>
-              </div>
-
-              <!-- Visibility Box -->
-              <div class="globe-weather-box" id="globeVisBox" style="display:none;">
-                  <span class="material-symbols-outlined globe-box-icon">visibility</span>
-                  <div class="globe-box-content">
-                      <div class="globe-box-label">Visibility</div>
-                      <div class="globe-box-value" id="globeVisValue">-- km</div>
-                      <div class="globe-box-detail" id="globeSunrise">Sunrise / Sunset</div>
-                  </div>
-              </div>
-
-              <!-- Loading indicator -->
-              <div class="globe-loading" id="globeLoading" style="display:none;">
-                  <div class="globe-spinner"></div>
-                  <p style="color:rgba(255,255,255,0.7); font-size:13px; margin-top:10px;">Fetching weather...</p>
-              </div>
+        <div class="globe-info-overlay">
+          <div class="globe-info-item">
+            <span class="material-symbols-outlined">location_on</span>
+            <div>
+              <div class="globe-info-label">Location</div>
+              <div class="globe-info-value" id="globeCity">Click a city on the globe</div>
+            </div>
           </div>
+          <div class="globe-info-item">
+            <span class="material-symbols-outlined">explore</span>
+            <div>
+              <div class="globe-info-label">Coordinates</div>
+              <div class="globe-info-value" id="globeCoords">--° , --°</div>
+            </div>
+          </div>
+        </div>
+        <div class="globe-instructions">
+          🖱️ Click city to get weather • 🖐️ Drag to rotate • 🖱️ Scroll to zoom • Space to pause
+        </div>
       </div>
+
+      <div class="globe-weather-boxes">
+        <div class="globe-empty-state" id="globeEmptyState">
+          <div style="font-size:48px; text-align:center; margin-bottom:15px;">🌍</div>
+          <p style="color:rgba(255,255,255,0.7); text-align:center; font-size:14px; line-height:1.6;">
+            Click on any city or location on the globe to see live weather conditions!
+          </p>
+        </div>
+
+        <div class="globe-weather-box" id="globeTempBox" style="display:none;">
+          <span class="material-symbols-outlined globe-box-icon">device_thermostat</span>
+          <div class="globe-box-content">
+            <div class="globe-box-label">Temperature</div>
+            <div class="globe-box-value" id="globeTempValue">--°C</div>
+            <div class="globe-box-detail" id="globeFeelsLike">Feels like --°C</div>
+          </div>
+        </div>
+
+        <div class="globe-weather-box" id="globeConditionBox" style="display:none;">
+          <span class="material-symbols-outlined globe-box-icon" id="globeCondIcon">wb_sunny</span>
+          <div class="globe-box-content">
+            <div class="globe-box-label">Condition</div>
+            <div class="globe-box-value" id="globeCondValue">--</div>
+            <div class="globe-box-detail" id="globeCondDetail">--</div>
+          </div>
+        </div>
+
+        <div class="globe-weather-box" id="globeWindBox" style="display:none;">
+          <span class="material-symbols-outlined globe-box-icon">air</span>
+          <div class="globe-box-content">
+            <div class="globe-box-label">Wind</div>
+            <div class="globe-box-value" id="globeWindValue">-- m/s</div>
+            <div class="globe-box-detail" id="globeWindDir">Direction: --°</div>
+          </div>
+        </div>
+
+        <div class="globe-weather-box" id="globeHumidityBox" style="display:none;">
+          <span class="material-symbols-outlined globe-box-icon">water_drop</span>
+          <div class="globe-box-content">
+            <div class="globe-box-label">Humidity</div>
+            <div class="globe-box-value" id="globeHumidValue">--%</div>
+            <div class="globe-box-detail" id="globePressure">Pressure: -- hPa</div>
+          </div>
+        </div>
+
+        <div class="globe-weather-box" id="globeVisBox" style="display:none;">
+          <span class="material-symbols-outlined globe-box-icon">visibility</span>
+          <div class="globe-box-content">
+            <div class="globe-box-label">Visibility</div>
+            <div class="globe-box-value" id="globeVisValue">-- km</div>
+            <div class="globe-box-detail" id="globeSunrise">Sunrise / Sunset</div>
+          </div>
+        </div>
+
+        <div class="globe-loading" id="globeLoading" style="display:none;">
+          <div class="globe-spinner"></div>
+          <p style="color:rgba(255,255,255,0.7); font-size:13px; margin-top:10px;">Fetching weather...</p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- KILA CHATBOT -->
   <button class="kila-toggle-btn" id="kilaToggle" onclick="toggleKila()">🌤️</button>
 
   <div class="chat-container" id="chatContainer">
-      <div class="chat-header">
-          <div class="bot-avatar">🌤️</div>
-          <div class="bot-info">
-              <h2>Kila</h2>
-              <p>Your weather assistant</p>
+    <div class="chat-header">
+      <div class="bot-avatar">🌤️</div>
+      <div class="bot-info">
+        <h2>Kila</h2>
+        <p>Your weather assistant</p>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        <div class="message-avatar">🌤️</div>
+        <div class="message-content">
+          <p>Hi! I'm Kila! ☀️</p>
+          <p style="margin-top: 8px;">I'm your weather assistant! Ask me about current weather, forecasts, or weather conditions anywhere in the world! 🌈</p>
+          <div class="quick-suggestions">
+            <button class="suggestion-btn" onclick="sendSuggestion('Weather in Manila')">Weather in Manila</button>
+            <button class="suggestion-btn" onclick="sendSuggestion('Will it rain today?')">Will it rain?</button>
+            <button class="suggestion-btn" onclick="sendSuggestion('Should I bring an umbrella?')">Need umbrella?</button>
           </div>
+        </div>
       </div>
-      <div class="chat-messages" id="chatMessages">
-          <div class="message bot">
-              <div class="message-avatar">🌤️</div>
-              <div class="message-content">
-                  <p>Hi! I'm Kila! ☀️</p>
-                  <p style="margin-top: 8px;">I'm your weather assistant! Ask me about current weather, forecasts, or weather conditions anywhere in the world! 🌈</p>
-                  <div class="quick-suggestions">
-                      <button class="suggestion-btn" onclick="sendSuggestion('Weather in Manila')">Weather in Manila</button>
-                      <button class="suggestion-btn" onclick="sendSuggestion('Will it rain today?')">Will it rain?</button>
-                      <button class="suggestion-btn" onclick="sendSuggestion('Should I bring an umbrella?')">Need umbrella?</button>
-                  </div>
-              </div>
-          </div>
-      </div>
-      <div class="chat-input-container">
-          <input type="text" class="chat-input" id="chatInput" placeholder="Ask about weather..." onkeypress="handleChatKeyPress(event)"/>
-          <button class="send-btn" onclick="sendMessage()">
-              <span class="material-symbols-outlined">send</span>
-          </button>
-      </div>
+    </div>
+    <div class="chat-input-container">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Ask about weather..." onkeypress="handleChatKeyPress(event)"/>
+      <button class="send-btn" onclick="sendMessage()">
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </div>
   </div>
 
   <script src="//unpkg.com/globe.gl"></script>
   <script src="script.js"></script>
+
+
 </body>
 </html>

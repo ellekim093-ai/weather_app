@@ -1,8 +1,12 @@
+/* ============================================================
+   BASE
+   ============================================================ */
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100%;
     overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .bg-video {
@@ -17,68 +21,78 @@ html, body {
     object-position: center center;
     z-index: -1;
 }
-.top-header {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    height: clamp(75px, 9vw, 110px); 
+
+/* ============================================================
+   MAIN WRAPPER
+   ============================================================ */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    box-sizing: border-box;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.top-header {
+    position: relative;
+    width: 100%;
+    height: clamp(75px, 9vw, 110px);
     background: rgba(74, 127, 189, 1);
     padding: clamp(8px, 1.2vw, 20px);
     text-align: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     z-index: 10;
-    pointer-events: none !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
-
 .top-header h1 {
-    position: static !important;
-    transform: none;
-    left: auto;
-    top: auto;
-    z-index: 6;
     margin: 0;
     font-size: clamp(20px, 5vw, 30px);
     font-weight: 700;
     color: white;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     white-space: nowrap;
-    pointer-events: auto !important;
 }
-
 .top-header p {
-    position: static;
-    transform: none;
-    left: auto;
-    top: auto;
-    z-index: 6;
     margin: 0;
     font-size: clamp(14px, 2vw, 20px);
     color: rgba(255,255,255,0.9);
     white-space: nowrap;
 }
 
+/* ============================================================
+   SEARCH
+   ============================================================ */
 .search-container {
-    position: fixed;
-    top: clamp(45px, 7vw, 90px);
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     align-items: center;
+    justify-content: center;
     z-index: 200;
+    padding: clamp(14px, 2vw, 28px) 0 clamp(8px, 1vw, 16px);
+    width: 100%;
     pointer-events: auto !important;
 }
-
+.search-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
 .search-icon {
     position: absolute;
-    left: clamp(10px, 1vw, 15px);
+    left: clamp(10px, 1vw, 16px);
     font-size: clamp(16px, 1.5vw, 22px);
     color: rgba(255,255,255,0.7);
     z-index: 201;
     pointer-events: none !important;
 }
-
 .search-bar {
     padding: clamp(8px, 0.9vw, 14px) clamp(10px, 1vw, 15px) clamp(8px, 0.9vw, 14px) clamp(35px, 3.5vw, 50px);
     width: clamp(240px, 30vw, 520px);
@@ -93,9 +107,7 @@ html, body {
     pointer-events: auto !important;
     cursor: text !important;
 }
-
 .search-bar::placeholder { color: rgba(255,255,255,0.65); }
-
 .search-bar:focus {
     background: rgba(236,227,227,0.28);
     box-shadow: 0 0 10px rgba(255,255,255,0.2);
@@ -105,7 +117,7 @@ html, body {
 /* ── HISTORY DROPDOWN ── */
 .search-history-dropdown {
     position: absolute;
-    top: clamp(44px, 5vw, 60px);
+    top: calc(100% + 4px);
     left: 0;
     width: 100%;
     max-height: 340px;
@@ -121,7 +133,6 @@ html, body {
     pointer-events: auto !important;
 }
 .search-history-dropdown::-webkit-scrollbar { display: none; }
-
 .history-item {
     display: flex;
     align-items: center;
@@ -135,9 +146,7 @@ html, body {
 }
 .history-item:last-child { border-bottom: none; }
 .history-item:hover      { background: rgba(102,126,234,0.09); }
-
 .history-icon { font-size: clamp(16px, 1.5vw, 22px); color: #667eea; flex-shrink: 0; }
-
 .history-text {
     flex: 1;
     color: #2d2d2d;
@@ -147,7 +156,6 @@ html, body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 .history-delete {
     background: none;
     border: none;
@@ -174,11 +182,9 @@ html, body {
 
 /* ── ERROR MESSAGE ── */
 .error-msg {
-    position: fixed;
-    top: clamp(118px, 13vw, 160px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: fit-content;
+    display: block;
+    text-align: center;
+    margin: 0 auto clamp(6px, 1vw, 12px);
     color: #ff4d4d;
     font-weight: bold;
     font-size: clamp(11px, 1vw, 15px);
@@ -190,51 +196,430 @@ html, body {
     pointer-events: none !important;
     white-space: nowrap;
     z-index: 200;
+    position: relative;
 }
 .error-msg.show { opacity: 1; }
 
 /* ============================================================
-   GLASS CONTAINER — the big background box
-   pointer-events:none so it NEVER blocks clicks
+   UNIT TOGGLE (°C / °F)
    ============================================================ */
-.bg-information-container {
-    position: absolute;
-    top: clamp(20%, 15vw, 20%);        /* 8% on small, scales up, max 20% on large */
-    left: 50%;
-    transform: translateX(-50%);
-    width: clamp(280px, 50vw, 1000px);
-    height: clamp(20vh, 60vh, 80vh);
-    border-radius: 5%;
-    background: rgba(196,212,225,0.30);
-    backdrop-filter: blur(10px);
-    z-index: 5;
-    pointer-events: none !important;
+.unit-toggle-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: clamp(8px, 1.2vw, 18px);
+    z-index: 10;
+    position: relative;
+}
+.unit-toggle {
+    display: flex;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(14px);
+    border-radius: 30px;
+    padding: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+    gap: 4px;
+}
+.unit-btn {
+    padding: clamp(5px, 0.6vw, 9px) clamp(18px, 2.2vw, 32px);
+    border: none;
+    border-radius: 24px;
+    font-size: clamp(13px, 1.1vw, 17px);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.5px;
+}
+.unit-btn.active {
+    background: rgba(255,255,255,0.9);
+    color: #2c5fa8;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+.unit-btn:not(.active):hover {
+    background: rgba(255,255,255,0.12);
+    color: white;
 }
 
+/* ============================================================
+   CONTENT ROW — left-col + calendar side by side
+   ============================================================ */
+.content-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: clamp(16px, 2.5vw, 36px);
+    width: 100%;
+    max-width: 1400px;
+    padding: 0 clamp(12px, 2vw, 40px);
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
+/* Left column: stacks bg-info + sun/moon panel */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 1.5vw, 20px);
+    flex-shrink: 0;
+    width: clamp(300px, 55vw, 500px);
+}
 
 /* ============================================================
-   ARCH INFO BOX  — scales with vw
+   BG INFORMATION CONTAINER
    ============================================================ */
-.arch-info {
-    position: absolute;
-    left: 19.2%;
-    top: 35%;
-    transform: translate(-50%, -50%);
-    width: clamp(200px, 26vw, 370px);
-    height: clamp(200px, 26vw, 370px);
-    background: linear-gradient(135deg, #b4d2ff, #78aae6, #5a8cd2);
+.bg-information-container {
+    position: relative;
+    width: 100%;
+    min-height: clamp(300px, 60vh, 680px);
     border-radius: 5%;
-    box-shadow: -20px 0 40px rgba(43,42,42,0.35);
+    background: rgba(77, 22, 94, 0.3);
+    backdrop-filter: blur(10px);
+    z-index: 5;
+    pointer-events: none;
+
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    padding: 3% 4%;
+    box-sizing: border-box;
+    gap: clamp(10px, 2.5%, 20px);
+}
+
+@media (max-width: 900px) {
+    .left-column {
+        width: 90vw;
+    }
+    .bg-information-container {
+        min-height: unset;
+    }
+}
+
+/* ============================================================
+   SUN & MOON PANEL
+   ============================================================ */
+.sun-moon-panel {
+    width: 100%;
+    background: rgba(24, 60, 10, 0.5);
+    backdrop-filter: blur(18px);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    padding: clamp(14px, 2vw, 22px) clamp(16px, 2.5vw, 28px);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.2vw, 16px);
+}
+
+.sun-moon-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: clamp(13px, 1.3vw, 17px);
+    font-weight: 700;
+    padding-bottom: clamp(8px, 1vw, 12px);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    letter-spacing: 0.5px;
+}
+.sun-moon-header .material-symbols-outlined {
+    font-size: clamp(18px, 1.8vw, 24px);
+    color: #facc15;
+}
+
+/* ─ Arc ─ */
+.sun-arc-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: clamp(40px, 6vw, 70px);
+}
+
+.sun-arc-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* The moving sun emoji dot */
+.sun-arc-dot {
+    position: absolute;
+    font-size: clamp(16px, 2vw, 24px);
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 6px rgba(250,204,21,0.9));
+    transition: left 0.8s ease, top 0.8s ease;
+    pointer-events: none;
+    /* default position: top center */
+    left: 50%;
+    top: 10%;
+}
+
+.sun-label {
+    position: absolute;
+    bottom: 0;
+    font-size: clamp(10px, 1vw, 13px);
+    color: rgba(255,255,255,0.75);
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.sun-label.left  { left: 0; }
+.sun-label.right { right: 0; }
+.sun-label span  { color: white; font-size: clamp(11px, 1.1vw, 14px); }
+
+/* Status */
+.sun-status-text {
+    text-align: center;
+    font-size: clamp(11px, 1.05vw, 14px);
+    color: rgba(255,255,255,0.8);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 5px 14px;
+}
+
+/* Info row */
+.sun-moon-info-row {
+    display: flex;
+    gap: clamp(8px, 1.2vw, 16px);
+}
+.sun-moon-info-box {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 18px);
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 14px);
+    transition: background 0.25s ease;
+}
+.sun-moon-info-box {
+    background: rgba(255,255,255,0.13);
+}
+.smi-icon {
+    font-size: clamp(20px, 2.2vw, 30px);
+    color: #facc15;
+    flex-shrink: 0;
+}
+.moon-phase-icon {
+    font-size: clamp(22px, 2.5vw, 34px);
+    flex-shrink: 0;
+    line-height: 1;
+}
+.smi-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.smi-label {
+    font-size: clamp(9px, 0.85vw, 12px);
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+}
+.smi-value {
+    font-size: clamp(12px, 1.2vw, 17px);
+    font-weight: 700;
+    color: white;
+}
+
+/* ============================================================
+   14-DAY FORECAST CALENDAR
+   ============================================================ */
+.forecast-calendar {
+    flex: 1;
+    min-width: clamp(280px, 30vw, 420px);
+    max-width: 460px;
+    background: rgba(10, 30, 70, 0.45);
+    backdrop-filter: blur(18px);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    padding: clamp(14px, 2vw, 24px);
+    box-sizing: border-box;
+    align-self: flex-start;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: clamp(14px, 1.4vw, 18px);
+    font-weight: 700;
+    margin-bottom: clamp(12px, 1.5vw, 20px);
+    padding-bottom: clamp(8px, 1vw, 14px);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    letter-spacing: 0.5px;
+}
+.calendar-header .material-symbols-outlined {
+    font-size: clamp(18px, 1.8vw, 24px);
+    color: #7eb8f7;
+}
+.cal-hint {
+    margin-left: auto;
+    font-size: clamp(9px, 0.8vw, 11px);
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.3px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(6px, 1vw, 10px);
+}
+
+/* ─ Calendar Card ─ */
+.cal-day-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: clamp(8px, 1vw, 14px) clamp(8px, 1.2vw, 14px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(4px, 0.5vw, 8px);
+    transition: background 0.22s ease, transform 0.2s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    cursor: pointer;
+    user-select: none;
+}
+.cal-day-card:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(126,184,247,0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+.cal-day-card.today {
+    background: rgba(126,184,247,0.15);
+    border-color: rgba(126,184,247,0.45);
+}
+.cal-day-card.selected-day {
+    background: rgba(126,184,247,0.28);
+    border-color: rgba(126,184,247,0.9);
+    box-shadow: 0 0 0 2px rgba(126,184,247,0.5), 0 6px 20px rgba(0,0,0,0.25);
+    transform: translateY(-2px);
+}
+
+/* Chevron hint */
+.cal-click-hint {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.cal-click-hint .material-symbols-outlined {
+    font-size: clamp(14px, 1.4vw, 18px);
+    color: rgba(126,184,247,0.8);
+}
+.cal-day-card:hover .cal-click-hint,
+.cal-day-card.selected-day .cal-click-hint {
+    opacity: 1;
+}
+
+.cal-info {
+    flex: 1;
+    min-width: 0;
+}
+.cal-day-name {
+    font-size: clamp(11px, 1.05vw, 14px);
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+.cal-date-label {
+    font-size: clamp(9px, 0.75vw, 11px);
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.est-tag {
+    font-size: clamp(7px, 0.65vw, 9px);
+    background: rgba(255,193,7,0.25);
+    color: rgba(255,193,7,0.85);
+    border-radius: 4px;
+    padding: 0 3px;
+    font-style: italic;
+}
+.cal-condition {
+    font-size: clamp(9px, 0.8vw, 11px);
+    color: rgba(255,255,255,0.65);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin-bottom: 3px;
+}
+.cal-temps {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.cal-high {
+    font-size: clamp(12px, 1.1vw, 16px);
+    font-weight: 700;
+    /* color set inline by JS */
+}
+.cal-sep {
+    color: rgba(255,255,255,0.3);
+    font-size: clamp(10px, 0.9vw, 13px);
+}
+.cal-low {
+    font-size: clamp(10px, 0.9vw, 13px);
+    color: rgba(255,255,255,0.5);
+}
+.cal-humidity {
+    font-size: clamp(8px, 0.75vw, 10px);
+    color: rgba(100,180,255,0.8);
+    margin-top: 2px;
+}
+
+/* calendar loading shimmer */
+.cal-shimmer {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    height: clamp(60px, 8vw, 90px);
+    animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+    0%,100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ============================================================
+   ARCH INFO
+   ============================================================ */
+.arch-info {
+    position: relative;
+    width: 95%;
+    height: clamp(180px, 32vh, 400px);
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #b4d2ff, #78aae6, #5a8cd2);
+    border-radius: 5%;
+    box-shadow: -20px 0 40px rgba(43, 42, 42, 0.35);
+    display: flex;
+    align-items: center;
     justify-content: center;
     padding: clamp(12px, 1.5vw, 24px);
+    box-sizing: border-box;
     z-index: 4;
+    overflow: hidden;
     transition: background 0.8s ease;
     pointer-events: auto !important;
 }
-
 .arch-content {
     display: flex;
     flex-direction: column;
@@ -246,81 +631,79 @@ html, body {
     text-align: center;
     gap: clamp(4px, 0.7vw, 12px);
 }
-
-/* ── City Name ── */
 #cityName {
     position: absolute;
     top: 2%;
-    left: 150%;
+    left: 25%;
     transform: translateX(-50%);
     width: 90%;
     max-width: 400px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     text-align: center;
-    font-size: clamp(13px, 1.6vw, 22px);
+    font-size: clamp(10px, 1.6vw, 19px);
     font-weight: 600;
     color: white;
     z-index: 8;
     pointer-events: auto !important;
 }
 #cityText { word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
-
 .location-icon .material-symbols-outlined {
     font-size: clamp(18px, 2.4vw, 32px);
     color: white;
 }
-
-/* ── Temperature ── */
 #temperature {
     position: absolute;
-    left: 15%;
-    top: 15%;
-    transform: translateY(-50%);
-    font-size: clamp(32px, 4.5vw, 78px);
+    top: 1%;
+    left: 75%;
+    transform: none;
+    font-size: clamp(14px, 3vw, 25px);
     font-weight: bold;
-    width: 46%;
+    color: white;
     display: flex;
     align-items: center;
     gap: 6px;
+    max-width: 55%;
     pointer-events: auto !important;
 }
 #temperature .temp-icon {
-    font-size: clamp(24px, 3.5vw, 52px);
+    font-size: clamp(12px, 2.5vw, 26px);
     color: white;
+    flex-shrink: 0;
 }
-
-/* ── Condition text ── */
 #condition {
     position: absolute;
     top: 65%;
-    left: 25%;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: clamp(12px, 1.4vw, 22px);
     color: rgba(255,255,255,0.9);
     text-transform: capitalize;
+    text-align: center;
+    white-space: nowrap;
     pointer-events: auto !important;
 }
-
-/* ── Weather icon container ── */
 .weather-icon-container {
     position: absolute;
-    left: 25%;
-    top: 60%;
-    transform: translateY(-50%);
-    width: clamp(80px, 10vw, 185px);
-    height: clamp(80px, 10vw, 185px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    width: clamp(40px, 35%, 140px);
+    height: clamp(40px, 35%, 140px);
     pointer-events: none;
     overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-
-/* ── Date/time badge ── */
 .arch-date {
     position: absolute;
     top: 85%;
-    left: 12%;
-    font-size: clamp(10px, 1vw, 18px);
+    left: 7%;
+    font-size: clamp(10px, 1vw, 13px);
     color: white;
     font-weight: 500;
     z-index: 5;
@@ -335,186 +718,97 @@ html, body {
 }
 
 /* ============================================================
-   WEATHER CONDITION BOXES  (Humidity, UV, Wind, Visibility)
+   WEATHER CONDITIONS — 6 boxes, 3×2 grid
    ============================================================ */
 .weather-conditions-container {
-    position: absolute;
-    right: -135%;
-    top: 127%;
-    transform: translateY(-50%);
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
     display: flex;
     flex-direction: row;
-    gap: clamp(8px, 1.2vw, 22px);
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: clamp(13px, 3.5%, 19px);
+    pointer-events: auto !important;
     z-index: 9;
-    pointer-events: none !important;
+    margin-top: clamp(6px, 1.5%, 14px);
 }
-
 .weather-condition-box {
     position: relative;
-    width: clamp(90px, 10vw, 148px);
-    height: clamp(90px, 10vw, 148px);
-    background: rgba(255,255,255,0.15);
+    flex: 1 1 30%;
+    max-width: 29%;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
     backdrop-filter: blur(15px);
-    border-radius: clamp(12px, 1.5vw, 22px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: clamp(6px, 2%, 14px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: clamp(3px, 1.5%, 10px);
+    box-sizing: border-box;
     color: white;
     font-weight: 600;
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    transition: transform 0.3s ease, background 0.3s ease;
-    border: 2px solid rgba(255,255,255,0.2);
-    pointer-events: auto !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     cursor: pointer;
-    padding: clamp(6px, 0.8vw, 12px);
+    pointer-events: auto !important;
+    overflow: hidden;
+    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
-.weather-condition-box:hover {
+.weather-condition-box {
     transform: scale(1.05);
-    background: rgba(255,255,255,0.25);
-    box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
 }
-
 .weather-condition-box .condition-icon {
-    font-size: clamp(20px, 2.5vw, 38px);
-    margin-bottom: clamp(4px, 0.5vw, 9px);
+    font-size: clamp(10px, 3cqi, 24px);
+    margin-bottom: 2px;
     opacity: 0.9;
+    line-height: 1;
 }
 .weather-condition-box .condition-label {
-    font-size: clamp(8px, 0.85vw, 13px);
+    font-size: clamp(5px, 1.5cqi, 10px);
     opacity: 0.85;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 3px;
+    letter-spacing: 0.3px;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 .weather-condition-box .condition-value {
-    font-size: clamp(14px, 1.8vw, 26px);
+    font-size: clamp(8px, 2.5cqi, 18px);
     font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 .weather-condition-box .condition-status {
-    font-size: clamp(8px, 0.7vw, 12px);
-    margin-top: 3px;
-    padding: 2px 7px;
-    border-radius: 10px;
+    font-size: clamp(5px, 1.2cqi, 9px);
+    margin-top: 2px;
+    padding: 1px 4px;
+    border-radius: 6px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
-
-.condition-status.healthy   { background: rgba(76,175,80,0.3);  color: #031404; }
-.condition-status.moderate  { background: rgba(255,193,7,0.3);  color: #FFD54F; }
-.condition-status.unhealthy { background: rgba(244,67,54,0.3);  color: #270606; }
-
-.humidity-condition   { background: linear-gradient(135deg, rgba(33,150,243,0.2),  rgba(100,181,246,0.2)); }
-.uv-condition         { background: linear-gradient(135deg, rgba(255,193,7,0.2),   rgba(255,152,0,0.2));   }
-.wind-condition       { background: linear-gradient(135deg, rgba(156,39,176,0.2),  rgba(171,71,188,0.2));  }
-.visibility-condition { background: linear-gradient(135deg, rgba(63,81,181,0.2),   rgba(92,107,192,0.2));  }
-
+.condition-status.healthy   { background: rgba(76, 175, 80, 0.3);  color: #a5d6a7; }
+.condition-status.moderate  { background: rgba(255, 193, 7, 0.3);  color: #FFD54F; }
+.condition-status.unhealthy { background: rgba(244, 67, 54, 0.3);  color: #ef9a9a; }
+.humidity-condition   { background: linear-gradient(135deg, rgba(33,150,243,0.3),  rgba(100,181,246,0.3)); }
+.uv-condition         { background: linear-gradient(135deg, rgba(255,193,7,0.3),   rgba(255,152,0,0.3));   }
+.wind-condition       { background: linear-gradient(135deg, rgba(156,39,176,0.3),  rgba(171,71,188,0.3));  }
+.visibility-condition { background: linear-gradient(135deg, rgba(63,81,181,0.3),   rgba(92,107,192,0.3));  }
+.pressure-condition   { background: linear-gradient(135deg, rgba(0,188,212,0.3),   rgba(0,150,136,0.3));   }
+.feelslike-condition  { background: linear-gradient(135deg, rgba(233,30,99,0.3),   rgba(156,39,176,0.3));  }
 
 /* ============================================================
-   FORECAST PANELS
+   CUSTOM WEATHER ICONS
    ============================================================ */
-.panels-container {
-    position: absolute;
-    top: 120%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    width: 60%;
-    max-height: 70vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    z-index: 2;
-    border-top-right-radius: 30px;
-    border-bottom-right-radius: 30px;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
-    mask-repeat: no-repeat;
-    mask-size: 100% 100%;
-    padding-bottom: 40px;
-    box-sizing: border-box;
-    pointer-events: auto !important;
-}
-
-.panel {
-    position: relative;
-    flex: 0 0 auto;
-    background-color: rgba(63,129,204,0.7);
-    backdrop-filter: blur(10px);
-    color: white;
-    padding: 0;
-    margin: 0;
-    border-radius: 0;
-    font-size: clamp(10px, 0.97vw, 15px);
-    font-weight: bold;
-    min-width: 100px;
-    height: clamp(52px, 5.7vw, 88px);
-    text-align: left;
-    overflow: hidden;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    transition: opacity 0.3s ease;
-    pointer-events: auto !important;
-}
-
-/* Panel inner content — all use clamp for positions */
-.panel-day {
-    position: absolute;
-    top: clamp(14px, 1.73vw, 28px);
-    left: clamp(40px, 5.2vw, 80px);
-    font-size: clamp(13px, 1.38vw, 22px);
-    font-weight: bold;
-}
-
-.panel-icon {
-    width: clamp(28px, 3.12vw, 48px);
-    height: clamp(28px, 3.12vw, 48px);
-    position: absolute;
-    top: 50%;
-    left: clamp(80px, 9vw, 145px);
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: visible;
-}
-
-/* Panel icon shapes */
-.panel-icon .sun-icon {
-    width: clamp(24px, 3.12vw, 48px);
-    height: clamp(24px, 3.12vw, 48px);
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border-radius: 50%;
-    position: relative;
-    box-shadow: 0 0 10px rgba(255,215,0,0.8);
-}
-.panel-icon .sun-icon::before { display: none; }
-.panel-icon .moon-icon   { width: 100px; height: 100px; background: linear-gradient(135deg, #F0E68C, #DAA520); border-radius: 50%; position: relative; box-shadow: 0 0 30px rgba(240,230,140,0.6); transform: scale(0.35); transform-origin: center; }
-.panel-icon .moon-icon::after { content: ''; position: absolute; width: 80px; height: 80px; background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent); border-radius: 50%; top: -10px; right: -10px; box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2); }
-.panel-icon .cloud-icon   { width: 150px; height: 100px; position: relative; transform: scale(0.35); transform-origin: center; }
-.panel-icon .rain-icon    { width: 150px; height: 120px; position: relative; transform: scale(0.35); transform-origin: center; }
-.panel-icon .thunder-icon { width: 150px; height: 140px; position: relative; transform: scale(0.35); transform-origin: center; }
-.panel-icon .snow-icon    { width: 150px; height: 120px; position: relative; transform: scale(0.35); transform-origin: center; }
-.panel-icon .mist-icon    { width: 150px; height: 100px; position: relative; transform: scale(0.35); transform-origin: center; }
-
-
-/* ============================================================
-   CUSTOM WEATHER ICONS (main display)
-   ============================================================ */
-
-/* SUN */
-.sun-icon {
-    width: clamp(60px, 6.94vw, 110px);
-    height: clamp(60px, 6.94vw, 110px);
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    border-radius: 50%;
-    position: relative;
-    box-shadow: 0 0 30px rgba(255,215,0,0.6);
-}
+.sun-icon { width: clamp(60px, 6.94vw, 110px); height: clamp(60px, 6.94vw, 110px); background: linear-gradient(135deg, #FFD700, #FFA500); border-radius: 50%; position: relative; box-shadow: 0 0 30px rgba(255,215,0,0.6); }
 .sun-icon::before {
     content: '';
     position: absolute;
@@ -539,46 +833,20 @@ html, body {
     50%      { transform: scale(1.1); box-shadow: 0 0 50px rgba(255,215,0,0.9); }
 }
 
-/* MOON */
-.moon-icon {
-    width: clamp(60px, 6.94vw, 110px);
-    height: clamp(60px, 6.94vw, 110px);
-    background: linear-gradient(135deg, #F0E68C, #DAA520);
-    border-radius: 50%;
-    position: relative;
-    box-shadow: 0 0 30px rgba(240,230,140,0.6);
-    animation: glowMoon 4s ease-in-out infinite;
-}
-.moon-icon::after {
-    content: '';
-    position: absolute;
-    width: 80px; height: 80px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-    border-radius: 50%;
-    top: -10px; right: -10px;
-    box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2);
-}
+.moon-icon { width: clamp(60px, 6.94vw, 110px); height: clamp(60px, 6.94vw, 110px); background: linear-gradient(135deg, #F0E68C, #DAA520); border-radius: 50%; position: relative; box-shadow: 0 0 30px rgba(240,230,140,0.6); animation: glowMoon 4s ease-in-out infinite; }
+.moon-icon::after { content: ''; position: absolute; width: 80px; height: 80px; background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent); border-radius: 50%; top: -10px; right: -10px; box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2); }
 @keyframes glowMoon {
     0%,100% { box-shadow: 0 0 30px rgba(240,230,140,0.6); }
     50%      { box-shadow: 0 0 50px rgba(240,230,140,0.9); }
 }
 
-/* CLOUD */
 .cloud-icon { width: clamp(90px, 10.41vw, 160px); height: clamp(60px, 6.94vw, 108px); position: relative; }
-.cloud {
-    width: 80px; height: 40px;
-    background: linear-gradient(135deg, #ffffff, #e0e0e0);
-    border-radius: 40px;
-    position: absolute;
-    top: 20px; left: 35px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
+.cloud { width: 80px; height: 40px; background: linear-gradient(135deg, #ffffff, #e0e0e0); border-radius: 40px; position: absolute; top: 20px; left: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
 .cloud::before { content: ''; width: 50px; height: 50px; background: linear-gradient(135deg, #ffffff, #f0f0f0); border-radius: 50%; position: absolute; top: -25px; left: 10px; }
 .cloud::after  { content: ''; width: 60px; height: 50px; background: linear-gradient(135deg, #ffffff, #e8e8e8); border-radius: 50%; position: absolute; top: -20px; right: 5px; }
 .cloud-icon.animated .cloud { animation: floatCloud 4s ease-in-out infinite; }
 @keyframes floatCloud { 0%,100% { transform: translateX(0); } 50% { transform: translateX(15px); } }
 
-/* RAIN */
 .rain-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(72px, 8.33vw, 130px); position: relative; }
 .rain-cloud { width: 100px; height: 60px; background: linear-gradient(135deg, #78909C, #546E7A); border-radius: 40px; position: absolute; top: 10px; left: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 .rain-cloud::before { content: ''; width: 55px; height: 55px; background: linear-gradient(135deg, #90A4AE, #78909C); border-radius: 50%; position: absolute; top: -28px; left: 10px; }
@@ -590,7 +858,6 @@ html, body {
 .rain-drop:nth-child(5) { left: 90px; top: 60px; animation-delay: 0.6s; }
 @keyframes fallRain { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
 
-/* THUNDER */
 .thunder-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(84px, 9.72vw, 152px); position: relative; }
 .thunder-cloud { width: 110px; height: 50px; background: linear-gradient(135deg, #37474F, #263238); border-radius: 40px; position: absolute; top: 10px; left: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
 .thunder-cloud::before { content: ''; width: 60px; height: 60px; background: linear-gradient(135deg, #455A64, #37474F); border-radius: 50%; position: absolute; top: -30px; left: 10px; }
@@ -599,7 +866,6 @@ html, body {
 .lightning::after { content: ''; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 30px solid #FDD835; position: absolute; top: 40px; left: -14px; }
 @keyframes flashLightning { 0%,45%,55%,100% { opacity: 0; } 50% { opacity: 1; } }
 
-/* SNOW */
 .snow-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(72px, 8.33vw, 130px); position: relative; }
 .snow-cloud { width: 100px; height: 45px; background: linear-gradient(135deg, #B0BEC5, #90A4AE); border-radius: 40px; position: absolute; top: 10px; left: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
 .snow-cloud::before { content: ''; width: 55px; height: 55px; background: linear-gradient(135deg, #CFD8DC, #B0BEC5); border-radius: 50%; position: absolute; top: -28px; left: 10px; }
@@ -610,15 +876,12 @@ html, body {
 .snowflake:nth-child(4) { left: 80px; top: 60px; animation-delay: 1s;   }
 @keyframes fallSnow { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(50px) rotate(360deg); opacity: 0; } }
 
-/* MIST */
 .mist-icon { width: clamp(160px, 20vw, 310px); height: clamp(60px, 7vw, 105px); position: relative; }
 .mist-line { width: 150px; height: 15px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); border-radius: 10px; position: absolute; left: 10px; animation: driftMist 3s ease-in-out infinite; }
 .mist-line:nth-child(1) { top: 25px; }
 .mist-line:nth-child(2) { top: 45px; width: 120px; left: 15px; animation-delay: 0.5s; }
 .mist-line:nth-child(3) { top: 65px; animation-delay: 1s; }
 @keyframes driftMist { 0%,100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(10px); opacity: 1; } }
-
-
 
 /* ============================================================
    KILA CHATBOT
@@ -691,7 +954,6 @@ html, body {
 .chat-input-container { padding: clamp(10px, 1.2vw, 16px); background: white; border-top: 1px solid #e0e0e0; display: flex; gap: 8px; }
 .chat-input { flex: 1; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 20px; font-size: clamp(13px, 1vw, 16px); outline: none; transition: 0.3s ease; font-family: "Poppins", sans-serif; pointer-events: auto !important; cursor: text !important; }
 .chat-input:focus { border-color: #667eea; }
-
 .send-btn { width: clamp(36px, 3.5vw, 44px); height: clamp(36px, 3.5vw, 44px); background: linear-gradient(135deg, #667eea, #764ba2); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s ease; pointer-events: auto !important; }
 .send-btn:hover  { transform: scale(1.05); }
 .send-btn:active { transform: scale(0.95); }
@@ -784,40 +1046,45 @@ html, body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
-   RESPONSIVE BREAKPOINTS
-   These only adjust layout positions — not the design itself
+   RESPONSIVE
    ============================================================ */
-
-/* Large desktops 1440px+ */
-@media (min-width: 1440px) {
-    .arch-info { left: 18%; }
-    .weather-conditions-container { right: -130%; top: 125%; }
-    .time-weather-container { left: 103%; }
-}
-
-/* Standard desktops 1280px–1440px — default, no changes needed */
-
-/* Small desktops / large laptops 1024px–1280px */
-@media (max-width: 1280px) {
-    .arch-info { left: 20%; top: 38%; }
-    .weather-conditions-container { right: -128%; top: 130%; gap: clamp(6px, 1vw, 16px); }
-    .weather-condition-box { width: clamp(80px, 9vw, 130px); height: clamp(80px, 9vw, 130px); }
-    .time-weather-container { left: 102%; top: 57%; gap: clamp(6px, 1vw, 18px); }
-    .time-weather-box { width: clamp(90px, 12vw, 175px); height: clamp(160px, 20vw, 295px); }
-    .panels-container { top: 118%; }
-}
-
-/* Laptops 900px–1024px */
 @media (max-width: 1024px) {
-    .top-header h1 { font-size: clamp(16px, 2.2vw, 26px); }
-    .arch-info { left: 21%; top: 40%; width: clamp(170px, 24vw, 300px); height: clamp(170px, 24vw, 300px); }
-    .weather-conditions-container { right: -120%; top: 135%; gap: 8px; }
-    .weather-condition-box { width: clamp(72px, 8.5vw, 118px); height: clamp(72px, 8.5vw, 118px); }
-    .time-weather-container { left: 100%; top: 58%; gap: 8px; }
-    .time-weather-box { width: clamp(82px, 11vw, 155px); height: clamp(145px, 19vw, 270px); }
-    .panels-container { width: 62%; top: 116%; }
-    .globe-content { flex-direction: column; }
-    .globe-weather-boxes { width: 100%; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
-    .globe-weather-box   { min-width: 200px; }
-    .globe-empty-state   { min-width: 200px; }
+    .top-header h1        { font-size: clamp(16px, 2.2vw, 26px); }
+    .globe-content        { flex-direction: column; }
+    .globe-weather-boxes  { width: 100%; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+    .globe-weather-box    { min-width: 200px; }
+    .globe-empty-state    { min-width: 200px; }
+}
+
+/* Stack content-row to column on narrow screens */
+@media (max-width: 900px) {
+    .content-row {
+        flex-direction: column;
+        align-items: center;
+        padding: 0 clamp(12px, 4vw, 24px);
+    }
+    .left-column {
+        width: 90vw;
+    }
+    .bg-information-container {
+        min-height: unset;
+    }
+    .forecast-calendar {
+        width: 90vw;
+        max-width: 100%;
+        min-width: unset;
+    }
+    .calendar-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .sun-moon-panel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-grid {
+        grid-template-columns: 1fr;
+    }
+    .search-bar { width: clamp(200px, 80vw, 340px); }
 }
