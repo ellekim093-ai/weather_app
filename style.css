@@ -7,6 +7,7 @@ html, body {
     min-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
+    font-family: 'Poppins', sans-serif;
 }
 
 .bg-video {
@@ -608,7 +609,7 @@ html, body {
     height: clamp(180px, 32vh, 400px);
     flex-shrink: 0;
     background: linear-gradient(135deg, #b4d2ff, #78aae6, #5a8cd2);
-    border-radius: 5%;
+    border-radius: 4%;
     box-shadow: -20px 0 40px rgba(43, 42, 42, 0.35);
     display: flex;
     align-items: center;
@@ -688,16 +689,17 @@ html, body {
 }
 .weather-icon-container {
     position: absolute;
-    top: 50%;
+    top: 56%;
     left: 50%;
-    transform: translate(-50%, -55%);
-    width: clamp(40px, 35%, 140px);
-    height: clamp(40px, 35%, 140px);
+    transform: translate(-65%, -60%);
+    width: clamp(40px, 30%, 130px);
+    height: clamp(40px, 30%, 130px);
     pointer-events: none;
     overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 3;
 }
 .arch-date {
     position: absolute;

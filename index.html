@@ -6,8 +6,157 @@
   <title>Weather Platform</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+
+  <style>
+    /* ── GREETING OVERLAY ── */
+    #greetingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeInOverlay 0.5s ease;
+    }
+    @keyframes fadeInOverlay {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    #greetingOverlay.hide {
+      animation: fadeOutOverlay 0.5s ease forwards;
+    }
+    @keyframes fadeOutOverlay {
+      from { opacity: 1; } to { opacity: 0; }
+    }
+
+    .greeting-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: clamp(30px, 4vw, 60px) clamp(30px, 5vw, 70px);
+      text-align: center;
+      color: white;
+      max-width: clamp(300px, 50vw, 520px);
+      width: 90vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: slideUpBox 0.5s ease;
+    }
+    @keyframes slideUpBox {
+      from { transform: translateY(30px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .greeting-box .greeting-emoji {
+      font-size: clamp(40px, 6vw, 70px);
+      margin-bottom: 10px;
+      display: block;
+      animation: waveSun 2s ease-in-out infinite;
+    }
+    @keyframes waveSun {
+      0%,100% { transform: rotate(-10deg) scale(1);   }
+      50%      { transform: rotate(10deg)  scale(1.1); }
+    }
+
+    .greeting-box h2 {
+      font-size: clamp(18px, 2.8vw, 32px);
+      font-weight: 700;
+      margin: 0 0 6px;
+      font-family: 'Poppins', sans-serif;
+    }
+    .greeting-box p {
+      font-size: clamp(12px, 1.2vw, 16px);
+      opacity: 0.75;
+      margin: 0 0 24px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .greeting-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    #greetingNameInput {
+      flex: 1;
+      padding: clamp(9px, 1vw, 14px) clamp(14px, 1.5vw, 20px);
+      border-radius: 30px;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      font-size: clamp(13px, 1.2vw, 17px);
+      font-family: 'Poppins', sans-serif;
+      outline: none;
+      transition: border-color 0.3s ease, background 0.3s ease;
+      min-width: 0;
+    }
+    #greetingNameInput::placeholder { color: rgba(255,255,255,0.5); }
+    #greetingNameInput:focus {
+      border-color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.18);
+    }
+
+    #greetingSubmitBtn {
+      padding: clamp(9px, 1vw, 14px) clamp(18px, 2vw, 28px);
+      border-radius: 30px;
+      border: none;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: clamp(13px, 1.2vw, 17px);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.5);
+    }
+    #greetingSubmitBtn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(102,126,234,0.7);
+    }
+    #greetingSubmitBtn:active { transform: scale(0.97); }
+
+    /* ── HEADER GREETING TEXT ── */
+    #headerGreeting {
+      display: none;
+      font-size: clamp(11px, 1.1vw, 15px);
+      color: rgba(255,255,255,0.92);
+      font-weight: 500;
+      font-family: 'Poppins', sans-serif;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: clamp(4px, 0.4vw, 7px) clamp(12px, 1.2vw, 20px);
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+      position: absolute;
+      right: clamp(12px, 2vw, 30px);
+      top: 50%;
+      transform: translateY(-50%);
+      animation: popIn 0.5s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(-50%) scale(0.85); }
+      to   { opacity: 1; transform: translateY(-50%) scale(1);    }
+    }
+  </style>
 </head>
 <body>
+
+  <!-- GREETING OVERLAY -->
+  <div id="greetingOverlay">
+    <div class="greeting-box">
+      <span class="greeting-emoji">🌤️</span>
+      <h2>Welcome to Smart Weather!</h2>
+      <p>Who’s checking the weather today?</p>
+      <div class="greeting-input-row">
+        <input type="text" id="greetingNameInput" placeholder="Your name or nickname..." maxlength="30" />
+        <button id="greetingSubmitBtn" onclick="submitGreeting()">Let's Go!</button>
+      </div>
+    </div>
+  </div>
 
   <video id="bgVideo" autoplay muted loop playsinline class="bg-video" src="weather/sunny.mp4"></video>
 
@@ -15,6 +164,7 @@
     <div class="top-header">
       <h1>Smart Weather Platform</h1>
       <p>Check the latest weather updates here.</p>
+      <div id="headerGreeting"></div>
     </div>
 
     <div class="search-container">
@@ -337,6 +487,34 @@
   <script src="//unpkg.com/globe.gl"></script>
   <script src="script.js"></script>
 
+  <script>
+    // ── GREETING FEATURE ──
+    function submitGreeting() {
+      const input = document.getElementById('greetingNameInput');
+      const name  = input.value.trim();
+      if (!name) {
+        input.focus();
+        input.style.borderColor = 'rgba(255,100,100,0.8)';
+        setTimeout(() => { input.style.borderColor = 'rgba(255,255,255,0.3)'; }, 1200);
+        return;
+      }
+
+      // Show greeting in header
+      const headerGreeting = document.getElementById('headerGreeting');
+      headerGreeting.textContent = `Hi, ${name}! 👋 Here's the weather for today`;
+      headerGreeting.style.display = 'block';
+
+      // Hide overlay with fade
+      const overlay = document.getElementById('greetingOverlay');
+      overlay.classList.add('hide');
+      setTimeout(() => { overlay.style.display = 'none'; }, 500);
+    }
+
+    // Allow Enter key on greeting input
+    document.getElementById('greetingNameInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') submitGreeting();
+    });
+  </script>
 
 </body>
 </html>
