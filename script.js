@@ -1,4 +1,4 @@
-// WEATHER PLATFORM SCRIPT
+// WEATHER PLATFORM SCRIPT — with proper network error handling
 
 const cityInput = document.getElementById("cityInput");
 const errorMsg  = document.getElementById("errorMsg");
@@ -11,6 +11,108 @@ cityInput.setAttribute('autocomplete', 'new-password');
 bgVideo.setAttribute('playsinline', '');
 bgVideo.setAttribute('webkit-playsinline', '');
 bgVideo.muted = true;
+
+// ============================================================
+// NETWORK ERROR TYPES — gives specific messages not just "something went wrong"
+// ============================================================
+const NetworkErrors = {
+    OFFLINE:       'You appear to be offline. Please check your internet connection.',
+    TIMEOUT:       'Request timed out. The server is taking too long to respond.',
+    NOT_FOUND:     'City not found. Please check the spelling and try again.',
+    RATE_LIMIT:    'Too many requests. Please wait a moment before searching again.',
+    SERVER_ERROR:  'Weather service is having issues. Please try again in a few minutes.',
+    UNKNOWN:       'Something went wrong. Please try again.',
+};
+
+// ============================================================
+// FETCH WITH RETRY — automatically retries failed requests
+// ============================================================
+async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs = 8000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        // Check if user is offline before even trying
+        if (!navigator.onLine) {
+            throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
+        }
+
+        try {
+            // Create an AbortController to handle timeouts
+            const controller = new AbortController();
+            const timeoutId  = setTimeout(() => controller.abort(), timeoutMs);
+
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            // Handle specific HTTP status codes
+            if (response.status === 404) {
+                throw { type: 'NOT_FOUND', message: NetworkErrors.NOT_FOUND };
+            }
+            if (response.status === 429) {
+                throw { type: 'RATE_LIMIT', message: NetworkErrors.RATE_LIMIT };
+            }
+            if (response.status >= 500) {
+                throw { type: 'SERVER_ERROR', message: NetworkErrors.SERVER_ERROR };
+            }
+            if (!response.ok) {
+                throw { type: 'UNKNOWN', message: NetworkErrors.UNKNOWN };
+            }
+
+            return await response.json();
+
+        } catch (err) {
+            // If this is a known typed error, don't retry — just throw it
+            if (err.type) throw err;
+
+            // Timeout (AbortError)
+            if (err.name === 'AbortError') {
+                if (attempt === retries) {
+                    throw { type: 'TIMEOUT', message: NetworkErrors.TIMEOUT };
+                }
+            }
+
+            // Network failure (no internet mid-request, DNS failure, etc.)
+            if (err instanceof TypeError && err.message.includes('fetch')) {
+                if (attempt === retries) {
+                    throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
+                }
+            }
+
+            // Wait before retrying — waits longer each attempt (1s, 2s, 3s)
+            if (attempt < retries) {
+                showError(`Connection issue. Retrying... (${attempt}/${retries})`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
+        }
+    }
+}
+
+// ============================================================
+// SHOW / CLEAR ERROR
+// ============================================================
+function showError(message) {
+    errorMsg.textContent = message;
+    errorMsg.classList.add('show');
+}
+function clearError() {
+    errorMsg.textContent = "";
+    errorMsg.classList.remove('show');
+}
+
+// ============================================================
+// ONLINE / OFFLINE EVENT LISTENERS
+// ============================================================
+window.addEventListener('offline', () => {
+    showError(NetworkErrors.OFFLINE);
+});
+
+window.addEventListener('online', () => {
+    clearError();
+    showError('✅ Back online!');
+    setTimeout(clearError, 2000);
+});
 
 // ============================================================
 // UNIT TOGGLE
@@ -35,6 +137,38 @@ function toDisplayTemp(celsius) {
 function tempLabel(celsius) {
     return `${toDisplayTemp(celsius)}°${currentUnit}`;
 }
+
+// ============================================================
+// DEBOUNCE — prevents spamming API on every keypress
+// ============================================================
+let searchDebounceTimer = null;
+
+function debounce(fn, delay = 500) {
+    return function (...args) {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+// ============================================================
+// RATE LIMITER — tracks how many requests made recently
+// ============================================================
+const rateLimiter = {
+    requests: [],
+    maxRequests: 10,     // max 10 requests
+    windowMs: 60 * 1000, // per 60 seconds
+
+    canMakeRequest() {
+        const now = Date.now();
+        // Remove requests older than the window
+        this.requests = this.requests.filter(t => now - t < this.windowMs);
+        return this.requests.length < this.maxRequests;
+    },
+
+    recordRequest() {
+        this.requests.push(Date.now());
+    }
+};
 
 // ============================================================
 // SEARCH HISTORY
@@ -115,18 +249,31 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
+// INPUT SANITIZATION — cleans city input before using it
+// ============================================================
+function sanitizeCityInput(input) {
+    return input
+        .trim()
+        .replace(/[<>{}[\]\\^`|]/g, '') // remove dangerous characters
+        .replace(/\s+/g, ' ')           // collapse multiple spaces into one
+        .substring(0, 100);             // limit length
+}
+
+// ============================================================
 // ACCURATE UV INDEX — Open-Meteo (free, no key needed)
 // ============================================================
 async function fetchRealUVIndex(lat, lon) {
     try {
-        const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=uv_index&forecast_days=1`
+        const data = await fetchWithRetry(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=uv_index&forecast_days=1`,
+            {},
+            2,    // only 2 retries for secondary API
+            5000  // shorter timeout
         );
-        if (!res.ok) return null;
-        const data = await res.json();
         return Math.round(data.current?.uv_index ?? 0);
     } catch {
-        return null;
+        // UV is not critical — fail silently and return 0
+        return 0;
     }
 }
 
@@ -135,14 +282,15 @@ async function fetchRealUVIndex(lat, lon) {
 // ============================================================
 async function fetchAirQuality(lat, lon) {
     try {
-        const res = await fetch(
-            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5`
+        const data = await fetchWithRetry(
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5`,
+            {},
+            2,
+            5000
         );
-        if (!res.ok) return null;
-        const data = await res.json();
         return {
-            aqi: data.current?.us_aqi ?? null,
-            pm25: data.current?.pm2_5 ?? null
+            aqi:  data.current?.us_aqi ?? null,
+            pm25: data.current?.pm2_5  ?? null
         };
     } catch {
         return null;
@@ -219,17 +367,8 @@ function createWeatherIcon(iconCode) {
     weatherIconContainer.appendChild(iconDiv);
 }
 
-function showError(message) {
-    errorMsg.textContent = message;
-    errorMsg.classList.add('show');
-}
-function clearError() {
-    errorMsg.textContent = "";
-    errorMsg.classList.remove('show');
-}
-
 // ============================================================
-// DISPLAY WEATHER DATA (current / live) — with REAL UV
+// DISPLAY WEATHER DATA
 // ============================================================
 async function displayWeatherData(data) {
     clearError();
@@ -251,13 +390,11 @@ async function displayWeatherData(data) {
 
     document.getElementById("windBox").textContent = `${data.wind.speed} m/s`;
 
-    // Real UV from Open-Meteo
     const lat = data.coord.lat;
     const lon = data.coord.lon;
     let uvIndex = 0;
     if (isDay) {
-        const realUV = await fetchRealUVIndex(lat, lon);
-        uvIndex = realUV !== null ? realUV : 0;
+        uvIndex = await fetchRealUVIndex(lat, lon);
     }
     document.getElementById("uvBox").textContent = uvIndex;
     updateUVStatus(uvIndex);
@@ -299,7 +436,6 @@ function renderArchFromForecastDay(dayData) {
     const avgFeels = dayData.feelsLike.reduce((a, b) => a + b, 0) / dayData.feelsLike.length;
     const maxVis   = dayData.visibility.length > 0 ? (Math.max(...dayData.visibility) / 1000).toFixed(1) : '--';
 
-    // UV for forecast: use cloud cover from forecast data (best we can do for future days)
     const avgCloud = dayData.cloudCover.length > 0
         ? Math.round(dayData.cloudCover.reduce((a, b) => a + b, 0) / dayData.cloudCover.length)
         : 30;
@@ -554,15 +690,24 @@ function showCalendarShimmer() {
     }
 }
 
-function fetchForecast(city, timezone, sunrise, sunset) {
+async function fetchForecast(city, timezone, sunrise, sunset) {
     showCalendarShimmer();
-    fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${apiKey}`)
-        .then(response => { if (!response.ok) throw new Error('Forecast not found'); return response.json(); })
-        .then(data => {
-            window.currentForecastData = data;
-            displayForecastCalendar(data, timezone, sunrise, sunset);
-        })
-        .catch(error => console.error("Error fetching forecast:", error));
+    try {
+        const sanitizedCity = encodeURIComponent(sanitizeCityInput(city));
+        const data = await fetchWithRetry(
+            `https://api.openweathermap.org/data/2.5/forecast?q=${sanitizedCity}&units=metric&appid=${apiKey}`
+        );
+        window.currentForecastData = data;
+        displayForecastCalendar(data, timezone, sunrise, sunset);
+    } catch (err) {
+        // Forecast failure is not critical — show a soft message in the calendar
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align:center; color:rgba(255,255,255,0.6); padding: 20px; font-size:13px;">
+                ⚠️ Could not load forecast. ${err.message || NetworkErrors.UNKNOWN}
+            </div>`;
+        console.warn('Forecast fetch failed:', err);
+    }
 }
 
 function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
@@ -676,33 +821,80 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
 }
 
 // ============================================================
-// FETCH WEATHER — main entry point
+// FETCH WEATHER — main entry point with full error handling
 // ============================================================
-function fetchWeather(city, saveToHistory = true) {
+async function fetchWeather(city, saveToHistory = true) {
     clearError();
-    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`)
-        .then(response => { if (!response.ok) throw new Error('City not found'); return response.json(); })
-        .then(data => {
-            displayWeatherData(data);
-            fetchForecast(city, data.timezone, data.sys.sunrise, data.sys.sunset);
-            window.currentWeatherData = data;
-            if (saveToHistory) addToHistory(city);
-        })
-        .catch(error => {
-            showError(error.message === 'City not found' ? "City not found" : "Something went wrong");
-        });
+
+    // Check rate limit before sending request
+    if (!rateLimiter.canMakeRequest()) {
+        showError(NetworkErrors.RATE_LIMIT);
+        return;
+    }
+
+    // Sanitize input
+    const sanitizedCity = sanitizeCityInput(city);
+    if (!sanitizedCity) {
+        showError('Please enter a valid city name.');
+        return;
+    }
+
+    // Check if offline before even trying
+    if (!navigator.onLine) {
+        showError(NetworkErrors.OFFLINE);
+        return;
+    }
+
+    try {
+        rateLimiter.recordRequest();
+
+        const data = await fetchWithRetry(
+            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(sanitizedCity)}&units=metric&appid=${apiKey}`
+        );
+
+        await displayWeatherData(data);
+        fetchForecast(sanitizedCity, data.timezone, data.sys.sunrise, data.sys.sunset);
+        window.currentWeatherData = data;
+
+        if (saveToHistory) addToHistory(sanitizedCity);
+
+    } catch (err) {
+        // Show specific error based on what went wrong
+        const message = err.message || NetworkErrors.UNKNOWN;
+        showError(message);
+        console.error('Weather fetch error:', err);
+    }
 }
 
+// ============================================================
+// HANDLE SEARCH — called when user presses Enter
+// ============================================================
 function handleSearch() {
     const city = cityInput.value.trim();
-    if (!city) { showError("Please enter a city name!"); return; }
+    if (!city) {
+        showError('Please enter a city name!');
+        return;
+    }
     document.getElementById('searchHistoryDropdown').style.display = 'none';
     fetchWeather(city);
 }
 
-cityInput.addEventListener("keydown", e => { if (e.key === "Enter") handleSearch(); });
+// Debounced version so typing fast doesn't spam the API
+const debouncedSearch = debounce(handleSearch, 500);
 
+cityInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        // Clear the debounce and search immediately on Enter
+        clearTimeout(searchDebounceTimer);
+        handleSearch();
+    }
+});
+
+// ============================================================
+// INIT
+// ============================================================
 window.addEventListener("DOMContentLoaded", () => {
+    // Clean up corrupted localStorage history on load
     try {
         let history = JSON.parse(localStorage.getItem('weatherSearchHistory') || '[]');
         history = history.filter(h => typeof h === 'string' && h.trim().length > 0);
@@ -710,6 +902,7 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch {
         localStorage.removeItem('weatherSearchHistory');
     }
+
     fetchWeather("Manila", false);
     initGlobe();
 });
@@ -723,9 +916,8 @@ let rotationSpeed = 0.15;
 let rotationAnimFrame = null;
 let currentPOV = { lat: 0, lng: 0, altitude: 2.5 };
 
-// Globe panel state
 let globePanelVisible = true;
-let globePanelWidth = 280; // px, user-adjustable
+let globePanelWidth = 280;
 let globePanelMinWidth = 160;
 let globePanelMaxWidth = 420;
 let globeBoxVisibility = {
@@ -795,7 +987,7 @@ const worldCities = [
     { name: "Reykjavik",     country: "IS", lat: 64.1355,  lng: -21.8954,  capital: true  },
 ];
 
-// ─── Globe panel toggle / hide-show / resize ───────────────────────────
+// ─── Globe panel toggle ───────────────────────────
 function toggleGlobePanel() {
     globePanelVisible = !globePanelVisible;
     const panel = document.getElementById('globeWeatherPanel');
@@ -809,23 +1001,7 @@ function toggleGlobePanel() {
         btn.title = 'Show weather panel';
         btn.querySelector('.material-symbols-outlined').textContent = 'chevron_left';
     }
-    // Resize globe to fill new space
     setTimeout(resizeGlobe, 50);
-}
-
-function toggleGlobeBox(id) {
-    globeBoxVisibility[id] = !globeBoxVisibility[id];
-    const box = document.getElementById(id);
-    const btn = document.querySelector(`.globe-box-toggle-btn[data-target="${id}"]`);
-    if (box) {
-        // Only hide if currently showing data (not during loading)
-        const isShowing = box.style.display !== 'none';
-        box.style.display = globeBoxVisibility[id] && isShowing ? 'flex' : 'none';
-    }
-    if (btn) {
-        btn.classList.toggle('active', globeBoxVisibility[id]);
-        btn.title = globeBoxVisibility[id] ? 'Hide this card' : 'Show this card';
-    }
 }
 
 function resizeGlobe() {
@@ -837,7 +1013,6 @@ function resizeGlobe() {
     }
 }
 
-// Panel resize drag
 function initPanelResize() {
     const handle = document.getElementById('globePanelResizeHandle');
     const panel  = document.getElementById('globeWeatherPanel');
@@ -866,7 +1041,6 @@ function initPanelResize() {
         e.preventDefault();
     });
 
-    // Touch support
     handle.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
         startW = panel.offsetWidth;
@@ -884,24 +1058,30 @@ function initPanelResize() {
     handle.addEventListener('touchend', () => handle.classList.remove('dragging'));
 }
 
-// ─── Globe weather fetch — now uses REAL UV from Open-Meteo ───────────
+// ─── Globe weather fetch with full error handling ───────────
 async function fetchGlobeWeather(lat, lng, locationName) {
     document.getElementById('globeEmptyState').style.display = 'none';
     document.getElementById('globeLoading').style.display   = 'flex';
-    const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox'];
+    const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox','globeUVBox'];
     boxIds.forEach(id => { document.getElementById(id).style.display = 'none'; });
 
-    try {
-        const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`
-        );
-        if (!response.ok) throw new Error('Weather not found');
-        const data = await response.json();
+    // Check online status first
+    if (!navigator.onLine) {
+        document.getElementById('globeLoading').style.display = 'none';
+        showGlobeError(NetworkErrors.OFFLINE);
+        return;
+    }
 
-        // Fetch real UV in parallel
+    try {
+        const data = await fetchWithRetry(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`,
+            {},
+            3,
+            8000
+        );
+
         const isDay = data.dt >= data.sys.sunrise && data.dt <= data.sys.sunset;
-        const uvPromise = isDay ? fetchRealUVIndex(lat, lng) : Promise.resolve(0);
-        const uvIndex = await uvPromise;
+        const uvIndex = isDay ? await fetchRealUVIndex(lat, lng) : 0;
 
         const cityName = data.name || locationName || 'Unknown Location';
         document.getElementById('globeCity').textContent   = `${cityName}, ${data.sys.country}`;
@@ -935,28 +1115,38 @@ async function fetchGlobeWeather(lat, lng, locationName) {
         const sunset  = new Date(data.sys.sunset  * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         document.getElementById('globeSunrise').textContent = `☀️ ${sunrise} — 🌙 ${sunset}`;
 
-        // UV row
         document.getElementById('globeUVValue').textContent  = uvIndex !== null ? uvIndex : '--';
         document.getElementById('globeUVDetail').textContent = getUVLabel(uvIndex);
 
         document.getElementById('globeLoading').style.display = 'none';
 
-        // Show only boxes that user has toggled on
-        boxIds.concat(['globeUVBox']).forEach(id => {
+        boxIds.forEach(id => {
             if (globeBoxVisibility[id] !== false) {
                 document.getElementById(id).style.display = 'flex';
             }
         });
 
-    } catch (e) {
+    } catch (err) {
         document.getElementById('globeLoading').style.display = 'none';
-        document.getElementById('globeEmptyState').style.display = 'flex';
-        document.getElementById('globeEmptyState').innerHTML = `
-            <div style="font-size:40px;text-align:center;margin-bottom:12px">❌</div>
-            <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">
-                Could not fetch weather for this location. Try clicking a different area.
-            </p>`;
+        showGlobeError(err.message || NetworkErrors.UNKNOWN);
+        console.error('Globe weather fetch error:', err);
     }
+}
+
+// Helper to show error inside globe panel
+function showGlobeError(message) {
+    const emptyState = document.getElementById('globeEmptyState');
+    emptyState.style.display = 'flex';
+    emptyState.innerHTML = `
+        <div style="font-size:40px;text-align:center;margin-bottom:12px">⚠️</div>
+        <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">
+            ${message}
+        </p>
+        <button onclick="location.reload()" style="
+            margin-top:12px; padding:8px 16px;
+            background:rgba(0,198,255,0.2); border:1px solid rgba(0,198,255,0.5);
+            color:white; border-radius:8px; cursor:pointer; font-size:12px;
+        ">Try Again</button>`;
 }
 
 function getUVLabel(uv) {
@@ -1153,13 +1343,23 @@ function hideTypingIndicator() {
     const typingIndicator = document.getElementById('typingIndicator');
     if (typingIndicator) typingIndicator.remove();
 }
+
+// Chat weather fetch — also uses proper error handling
 async function fetchWeatherDataChat(city) {
     try {
-        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`);
-        if (!response.ok) throw new Error('City not found');
-        return await response.json();
-    } catch (error) { return null; }
+        const sanitized = sanitizeCityInput(city);
+        const data = await fetchWithRetry(
+            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(sanitized)}&units=metric&appid=${apiKey}`,
+            {},
+            2,
+            6000
+        );
+        return data;
+    } catch (err) {
+        return null; // chat handles null gracefully
+    }
 }
+
 function classifyIntent(message) {
     const m = message.toLowerCase();
     if (/\b(hi|hello|hey|hola|kumusta|good morning|good afternoon|good evening)\b/i.test(m))      return 'greeting';
@@ -1309,7 +1509,12 @@ async function sendMessage() {
             hideTypingIndicator();
             addMessage(insight, false);
         } else {
-            addMessage(`Hmm, I couldn't find "${cityName}" on my weather radar! 🌍 Check the spelling or try a different city!`, false);
+            // Network error message in chat
+            if (!navigator.onLine) {
+                addMessage("You seem to be offline! 📡 Check your internet connection and try again.", false);
+            } else {
+                addMessage(`Hmm, I couldn't find "${cityName}" on my weather radar! 🌍 Check the spelling or try a different city!`, false);
+            }
         }
     } else {
         const response = await generateNLPResponse(message);
