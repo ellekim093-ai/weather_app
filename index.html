@@ -133,7 +133,22 @@
     </div>
   </div>
 
-  <video id="bgVideo" autoplay muted loop playsinline class="bg-video" src="weather/sunny.mp4"></video>
+  <!--
+    FIX 2 — MOBILE VIDEO:
+    Added webkit-playsinline (older iOS Safari) alongside the existing
+    playsinline attribute. Both are required for autoplay on iOS devices.
+    The video already had autoplay, muted, loop, and playsinline —
+    webkit-playsinline was the missing piece for older iPhones/iPads.
+  -->
+  <video id="bgVideo"
+         autoplay
+         muted
+         loop
+         playsinline
+         webkit-playsinline
+         preload="auto"
+         class="bg-video"
+         src="weather/sunny.mp4"></video>
 
   <main class="main-container">
     <div class="top-header">
@@ -144,7 +159,18 @@
     <div class="search-container">
       <div class="search-inner">
         <span class="material-symbols-outlined search-icon">search</span>
-        <input type="text" id="cityInput" placeholder="Search city or country" class="search-bar">
+        <!--
+          FIX 1 — DOUBLE DROPDOWN:
+          autocomplete="off" stops the browser's native autocomplete
+          dropdown from appearing alongside our custom history dropdown.
+          Without this, Chrome/Edge show their own saved suggestions
+          on top of ours, causing two dropdowns to appear at once.
+        -->
+        <input type="text"
+               id="cityInput"
+               placeholder="Search city or country"
+               class="search-bar"
+               autocomplete="off">
         <div id="searchHistoryDropdown" class="search-history-dropdown"></div>
       </div>
     </div>

@@ -802,8 +802,6 @@ html, body {
     pointer-events: auto !important;
     overflow: hidden;
     transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
-}
-.weather-condition-box {
     transform: scale(1.05);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
 }

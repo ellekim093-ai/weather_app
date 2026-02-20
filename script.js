@@ -7,9 +7,31 @@ const bgVideo   = document.getElementById("bgVideo");
 
 const apiKey = "2e3d2d2d9957fd5364e42c6cf4fe73e5";
 
-// ============================================
+// ============================================================
+// FIX 1 — DOUBLE DROPDOWN
+// The browser's native autocomplete is already disabled via
+// autocomplete="off" on the <input> in index.html.
+// This JS line is an extra safety net for browsers (e.g. Chrome)
+// that ignore autocomplete="off" on certain input types.
+// Setting it to "new-password" is a well-known workaround that
+// reliably suppresses the browser's own suggestion dropdown.
+// ============================================================
+cityInput.setAttribute('autocomplete', 'new-password');
+
+// ============================================================
+// FIX 2 — MOBILE VIDEO
+// Programmatically set all required mobile video attributes on
+// the bgVideo element. Even though these are also in the HTML,
+// some older Android WebViews and iOS browsers need them set
+// via JS at runtime to honour them for dynamically-swapped src.
+// ============================================================
+bgVideo.setAttribute('playsinline', '');
+bgVideo.setAttribute('webkit-playsinline', '');
+bgVideo.muted = true;   // Must be set via JS property (not just attribute) for some browsers
+
+// ============================================================
 // UNIT TOGGLE (°C / °F)
-// ============================================
+// ============================================================
 
 let currentUnit = 'C';
 
@@ -24,7 +46,6 @@ function setUnit(unit) {
         const d = window.currentWeatherData;
         if (d) displayForecastCalendar(window.currentForecastData, d.timezone, d.sys.sunrise, d.sys.sunset);
     }
-    // Re-render selected day if any
     if (window.selectedDayData) {
         renderArchFromForecastDay(window.selectedDayData);
     }
@@ -121,22 +142,76 @@ document.addEventListener('click', (e) => {
 // BACKGROUND VIDEO
 // ============================================
 
-function changeBackgroundVideo(iconCode) {
+/**
+ * HEAVY RAIN DETECTION — Why the API doesn't have a "heavy rain" icon code:
+ *
+ * OpenWeatherMap icon codes only go up to:
+ *   09d/09n = shower rain
+ *   10d/10n = rain (light to moderate)
+ *   11d/11n = thunderstorm
+ *
+ * There is NO separate "heavy rain" icon code in OWM.
+ * To detect heavy rain we read data.rain['1h'] (mm per hour):
+ *   < 2.5 mm/h  = light rain   → light_rain.mp4
+ *   2.5–7.6     = moderate     → light_rain.mp4
+ *   > 7.6 mm/h  = heavy rain   → heavy_rain.mp4
+ *
+ * rainMmPerHour is passed in from displayWeatherData() after extracting
+ * it from the API response's optional `rain` object.
+ */
+function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     let videoFile = "sunny.mp4";
-    if      (iconCode === '01d')                                             videoFile = "sunny.mp4";
-    else if (iconCode === '01n')                                             videoFile = "clear_night.mp4";
-    else if (['02d','02n','03d','03n','04d','04n'].includes(iconCode))       videoFile = "cloudy.mp4";
-    else if (['09d','09n','10d','10n'].includes(iconCode))                   videoFile = "light_rain.mp4";
-    else if (['11d','11n'].includes(iconCode))                               videoFile = "thunderstorm.mp4";
-    else if (['13d','13n'].includes(iconCode))                               videoFile = "snow.mp4";
-    else if (['50d','50n'].includes(iconCode))                               videoFile = "mist.mp4";
+
+    if      (iconCode === '01d')                                        videoFile = "sunny.mp4";
+    else if (iconCode === '01n')                                        videoFile = "night.mp4";
+    else if (['02d','02n','03d','03n','04d','04n'].includes(iconCode))  videoFile = "cloudy.mp4";
+    else if (['09d','09n','10d','10n'].includes(iconCode)) {
+        videoFile = rainMmPerHour > 7.6 ? "heavy_rain.mp4" : "light_rain.mp4";
+    }
+    else if (['11d','11n'].includes(iconCode))                          videoFile = "thunderstorm.mp4";
+    else if (['13d','13n'].includes(iconCode))                          videoFile = "snow.mp4";
+    else if (['50d','50n'].includes(iconCode))                          videoFile = "mist.mp4";
+
     const newSrc = `weather/${videoFile}`;
-    if (bgVideo.getAttribute('src') !== newSrc) {
-        bgVideo.setAttribute('src', newSrc);
-        bgVideo.load();
-        bgVideo.play().catch(() => {});
+
+    // Only reload if the source actually changed
+    if (bgVideo.getAttribute('src') === newSrc) return;
+
+    bgVideo.setAttribute('src', newSrc);
+
+    // ── FIX 2 (continued) — RE-ASSERT MOBILE ATTRIBUTES BEFORE EACH PLAY ──
+    // When src changes and load() is called, some mobile browsers (especially
+    // older Android WebView) reset the element's internal state and lose the
+    // muted / playsinline flags. Re-setting them here before every play()
+    // ensures the night video (and any other video swap) works on mobile.
+    bgVideo.muted = true;
+    bgVideo.setAttribute('playsinline', '');
+    bgVideo.setAttribute('webkit-playsinline', '');
+
+    bgVideo.load();
+
+    const playPromise = bgVideo.play();
+    if (playPromise !== undefined) {
+        playPromise
+            .then(() => {
+                // Autoplay started successfully
+            })
+            .catch(err => {
+                // Autoplay blocked — retry on first user interaction
+                console.warn('Autoplay blocked:', err.message);
+                const retryPlay = () => {
+                    bgVideo.play().catch(() => {});
+                    document.removeEventListener('click',      retryPlay);
+                    document.removeEventListener('keydown',    retryPlay);
+                    document.removeEventListener('touchstart', retryPlay);
+                };
+                document.addEventListener('click',      retryPlay, { once: true });
+                document.addEventListener('keydown',    retryPlay, { once: true });
+                document.addEventListener('touchstart', retryPlay, { once: true });
+            });
     }
 }
+
 function isDayTime(timezone, sunrise, sunset) {
     const nowUTC = Math.floor(Date.now() / 1000);
     const cityTimeSeconds = nowUTC + timezone;
@@ -146,6 +221,14 @@ function getCorrectIconCode(iconCode, isDay) {
     const baseCode = iconCode.substring(0, 2);
     return baseCode + (isDay ? 'd' : 'n');
 }
+
+function extractRainMmPerHour(data) {
+    if (!data.rain) return 0;
+    if (data.rain['1h'] !== undefined) return data.rain['1h'];
+    if (data.rain['3h'] !== undefined) return data.rain['3h'] / 3;
+    return 0;
+}
+
 function createWeatherIcon(iconCode) {
     weatherIconContainer.innerHTML = '';
     const iconDiv = document.createElement('div');
@@ -185,14 +268,17 @@ function calculateUVIndex(data) {
 
 function displayWeatherData(data) {
     clearError();
-    window.selectedDayData = null; // reset selected day
+    window.selectedDayData = null;
     document.getElementById("cityText").textContent = `${data.name}, ${data.sys.country}`;
     document.getElementById("tempValue").textContent = tempLabel(data.main.temp);
 
     const isDay = isDayTime(data.timezone, data.sys.sunrise, data.sys.sunset);
     const correctIconCode = getCorrectIconCode(data.weather[0].icon, isDay);
     createWeatherIcon(correctIconCode);
-    changeBackgroundVideo(correctIconCode);
+
+    const rainMmPerHour = extractRainMmPerHour(data);
+    changeBackgroundVideo(correctIconCode, rainMmPerHour);
+
     updateArchColor(data.main.temp);
 
     const humidity = data.main.humidity;
@@ -220,11 +306,8 @@ function displayWeatherData(data) {
         data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
 
     updateDateTimeByTimezone(data);
-
-    // Update sun/moon panel
     updateSunMoonPanel(data);
 
-    // Remove 'today-live' badge if any
     document.querySelectorAll('.cal-day-card').forEach(c => c.classList.remove('selected-day'));
     const todayCard = document.querySelector('.cal-day-card[data-index="today"]');
     if (todayCard) todayCard.classList.add('selected-day');
@@ -246,19 +329,19 @@ function renderArchFromForecastDay(dayData) {
     const avgFeels  = dayData.feelsLike.reduce((a, b) => a + b, 0) / dayData.feelsLike.length;
     const maxVis    = dayData.visibility.length > 0 ? (Math.max(...dayData.visibility) / 1000).toFixed(1) : '--';
 
-    // Estimate UV from cloud cover
     const avgCloud  = dayData.cloudCover.length > 0
         ? Math.round(dayData.cloudCover.reduce((a, b) => a + b, 0) / dayData.cloudCover.length)
         : 30;
     let uv = avgCloud > 80 ? 2 : avgCloud > 50 ? 5 : avgCloud > 20 ? 7 : 9;
 
-    const isDay     = true; // forecast always shows daytime
+    const isDay = true;
     const correctIconCode = getCorrectIconCode(dayData.icon, isDay);
 
-    // Show temp as range
     document.getElementById("tempValue").textContent = `${tempLabel(maxTemp)} / ${tempLabel(minTemp)}`;
     createWeatherIcon(correctIconCode);
-    changeBackgroundVideo(correctIconCode);
+
+    changeBackgroundVideo(correctIconCode, 0);
+
     updateArchColor(avgTemp);
 
     const daysOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -269,7 +352,6 @@ function renderArchFromForecastDay(dayData) {
     const monthShort = months[d.getUTCMonth()];
     const year       = d.getUTCFullYear();
 
-    // Update date display
     const dateTimeEl = document.getElementById("currentDateTime");
     dateTimeEl.textContent = `📅 Forecast: ${dayName}, ${dayNum} ${monthShort} ${year}`;
     if (clockInterval) clearInterval(clockInterval);
@@ -293,7 +375,6 @@ function renderArchFromForecastDay(dayData) {
     const condition = dayData.weather.description.charAt(0).toUpperCase() + dayData.weather.description.slice(1);
     document.getElementById("condition").textContent = condition;
 
-    // Update sun/moon panel for forecast day
     updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp);
 }
 
@@ -387,7 +468,6 @@ function updateSunMoonPanel(data) {
     const sunrise  = data.sys.sunrise;
     const sunset   = data.sys.sunset;
 
-    // Format in city local time
     function toLocalTime(unixUtc) {
         const cityTime = new Date((unixUtc + timezone) * 1000);
         let h = cityTime.getUTCHours();
@@ -405,26 +485,21 @@ function updateSunMoonPanel(data) {
 
     const isDay = isDayTime(timezone, sunrise, sunset);
 
-    // Duration
     const daylightMinutes = Math.round(totalDaylight / 60);
     const dHours = Math.floor(daylightMinutes / 60);
     const dMins  = daylightMinutes % 60;
 
-    // Moon phase (simple approximation)
     const moonPhase = getMoonPhase(new Date());
 
-    document.getElementById('sunriseTime').textContent   = toLocalTime(sunrise);
-    document.getElementById('sunsetTime').textContent    = toLocalTime(sunset);
+    document.getElementById('sunriseTime').textContent      = toLocalTime(sunrise);
+    document.getElementById('sunsetTime').textContent       = toLocalTime(sunset);
     document.getElementById('daylightDuration').textContent = `${dHours}h ${dMins}m`;
     document.getElementById('moonPhaseLabel').textContent   = moonPhase.name;
     document.getElementById('moonPhaseIcon').textContent    = moonPhase.emoji;
 
-    // Arc progress
-    const arc = document.getElementById('sunArcProgress');
     const dot = document.getElementById('sunArcDot');
     const clampedProgress = Math.max(0, Math.min(progress, 100));
 
-    // Animate SVG arc
     const arcPath = document.getElementById('sunArcPath');
     if (arcPath) {
         const totalLen = 150;
@@ -433,7 +508,6 @@ function updateSunMoonPanel(data) {
         arcPath.style.transition = 'stroke-dashoffset 1.2s ease';
     }
     if (dot) {
-        // Position dot along a semicircle
         const angle = (clampedProgress / 100) * Math.PI;
         const cx = 50, cy = 80, rx = 45, ry = 45;
         const x = cx - rx * Math.cos(angle);
@@ -443,7 +517,6 @@ function updateSunMoonPanel(data) {
         dot.style.display = isDay ? 'block' : 'none';
     }
 
-    // Status
     const statusEl = document.getElementById('sunStatusText');
     if (statusEl) {
         if (isDay) {
@@ -472,7 +545,6 @@ function updateSunMoonPanel(data) {
 }
 
 function updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp) {
-    // For forecast days, estimate sunrise ~6am and sunset ~6pm in city timezone
     const d = dayData.date;
     const dayStr = `${d.getUTCDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]}`;
 
@@ -489,28 +561,27 @@ function updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp) {
     if (daylightEl) daylightEl.textContent = '~12h 0m';
 
     const phase = getMoonPhase(d);
-    if (moonEl)   moonEl.textContent  = phase.name;
+    if (moonEl)   moonEl.textContent   = phase.name;
     if (moonIcon) moonIcon.textContent = phase.emoji;
     if (statusEl) statusEl.textContent = `📅 Forecast for ${dayStr}`;
-    if (dot) dot.style.display = 'none';
+    if (dot)      dot.style.display    = 'none';
 }
 
 function getMoonPhase(date) {
-    // Approximation based on days since known new moon
     const knownNewMoon = new Date('2024-01-11');
     const diff = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
     const cycle = 29.53058867;
     const phase = ((diff % cycle) + cycle) % cycle;
 
-    if      (phase < 1.84)   return { name: 'New Moon',        emoji: '🌑' };
-    else if (phase < 5.53)   return { name: 'Waxing Crescent', emoji: '🌒' };
-    else if (phase < 9.22)   return { name: 'First Quarter',   emoji: '🌓' };
-    else if (phase < 12.91)  return { name: 'Waxing Gibbous',  emoji: '🌔' };
-    else if (phase < 16.61)  return { name: 'Full Moon',       emoji: '🌕' };
-    else if (phase < 20.30)  return { name: 'Waning Gibbous',  emoji: '🌖' };
-    else if (phase < 23.99)  return { name: 'Last Quarter',    emoji: '🌗' };
-    else if (phase < 27.68)  return { name: 'Waning Crescent', emoji: '🌘' };
-    else                     return { name: 'New Moon',        emoji: '🌑' };
+    if      (phase < 1.84)  return { name: 'New Moon',        emoji: '🌑' };
+    else if (phase < 5.53)  return { name: 'Waxing Crescent', emoji: '🌒' };
+    else if (phase < 9.22)  return { name: 'First Quarter',   emoji: '🌓' };
+    else if (phase < 12.91) return { name: 'Waxing Gibbous',  emoji: '🌔' };
+    else if (phase < 16.61) return { name: 'Full Moon',       emoji: '🌕' };
+    else if (phase < 20.30) return { name: 'Waning Gibbous',  emoji: '🌖' };
+    else if (phase < 23.99) return { name: 'Last Quarter',    emoji: '🌗' };
+    else if (phase < 27.68) return { name: 'Waning Crescent', emoji: '🌘' };
+    else                    return { name: 'New Moon',        emoji: '🌑' };
 }
 
 // ============================================
@@ -545,14 +616,11 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
     const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // Use city's local timezone offset to get correct "today"
     const nowUTC = Math.floor(Date.now() / 1000);
     const cityLocalMs = (nowUTC + timezone) * 1000;
     const cityDate = new Date(cityLocalMs);
-    // Build today's date key in city time (YYYY-MM-DD)
     const todayKey = `${cityDate.getUTCFullYear()}-${String(cityDate.getUTCMonth()+1).padStart(2,'0')}-${String(cityDate.getUTCDate()).padStart(2,'0')}`;
 
-    // Group forecast by city-local day
     const dailyForecasts = {};
     forecastData.list.forEach(item => {
         const cityItemMs = (item.dt + timezone) * 1000;
@@ -575,7 +643,6 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         if (item.visibility) dailyForecasts[dayKey].visibility.push(item.visibility);
         if (item.clouds?.all !== undefined) dailyForecasts[dayKey].cloudCover.push(item.clouds.all);
 
-        // prefer midday icon
         const hour = itemDate.getUTCHours();
         if (hour >= 11 && hour <= 14) {
             dailyForecasts[dayKey].weather = item.weather[0];
@@ -583,18 +650,15 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         }
     });
 
-    // Separate today and future days using city timezone
     let forecastDays = Object.entries(dailyForecasts)
         .filter(([key]) => key !== todayKey)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([, value]) => value)
         .slice(0, 5);
 
-    // Extrapolate to 14 days
     const extendedDays = [];
     for (let i = 0; i < 14; i++) {
         const sourceDay = forecastDays[i % forecastDays.length];
-        // Calculate the actual date for this slot relative to city's today
         const slotMs = (nowUTC + timezone + (i + 1) * 86400) * 1000;
         const slotDate = new Date(slotMs);
         extendedDays.push({
@@ -612,7 +676,6 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
 
         const condition = dayData.weather.description.charAt(0).toUpperCase() + dayData.weather.description.slice(1);
 
-        // Get day name and date based on actual slot date (city timezone)
         const dayName    = daysOfWeek[dayData.date.getUTCDay()];
         const dayNum     = dayData.date.getUTCDate();
         const monthShort = monthNames[dayData.date.getUTCMonth()];
@@ -623,7 +686,6 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         card.dataset.index = index === 0 ? 'tomorrow' : index;
         card.title = `Click to view ${index === 0 ? 'tomorrow' : dayName}'s forecast`;
 
-        // Temp color hint
         const tempDeg = Math.round(avgTemp);
         let tempColor = '#FFD580';
         if      (tempDeg >= 35) tempColor = '#ff7043';
@@ -648,9 +710,7 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
                 <span class="material-symbols-outlined">chevron_right</span>
             </div>`;
 
-        // Click handler
         card.addEventListener('click', () => {
-            // Deselect all
             document.querySelectorAll('.cal-day-card').forEach(c => c.classList.remove('selected-day'));
             card.classList.add('selected-day');
             renderArchFromForecastDay(dayData);
