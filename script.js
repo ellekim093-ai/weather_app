@@ -13,7 +13,7 @@ bgVideo.setAttribute('webkit-playsinline', '');
 bgVideo.muted = true;
 
 // ============================================================
-// NETWORK ERROR TYPES — gives specific messages not just "something went wrong"
+// NETWORK ERROR TYPES
 // ============================================================
 const NetworkErrors = {
     OFFLINE:       'You appear to be offline. Please check your internet connection.',
@@ -25,62 +25,31 @@ const NetworkErrors = {
 };
 
 // ============================================================
-// FETCH WITH RETRY — automatically retries failed requests
+// FETCH WITH RETRY
 // ============================================================
 async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs = 8000) {
     for (let attempt = 1; attempt <= retries; attempt++) {
-        // Check if user is offline before even trying
         if (!navigator.onLine) {
             throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
         }
-
         try {
-            // Create an AbortController to handle timeouts
             const controller = new AbortController();
             const timeoutId  = setTimeout(() => controller.abort(), timeoutMs);
-
-            const response = await fetch(url, {
-                ...options,
-                signal: controller.signal
-            });
-
+            const response = await fetch(url, { ...options, signal: controller.signal });
             clearTimeout(timeoutId);
-
-            // Handle specific HTTP status codes
-            if (response.status === 404) {
-                throw { type: 'NOT_FOUND', message: NetworkErrors.NOT_FOUND };
-            }
-            if (response.status === 429) {
-                throw { type: 'RATE_LIMIT', message: NetworkErrors.RATE_LIMIT };
-            }
-            if (response.status >= 500) {
-                throw { type: 'SERVER_ERROR', message: NetworkErrors.SERVER_ERROR };
-            }
-            if (!response.ok) {
-                throw { type: 'UNKNOWN', message: NetworkErrors.UNKNOWN };
-            }
-
+            if (response.status === 404) throw { type: 'NOT_FOUND',    message: NetworkErrors.NOT_FOUND    };
+            if (response.status === 429) throw { type: 'RATE_LIMIT',   message: NetworkErrors.RATE_LIMIT   };
+            if (response.status >= 500)  throw { type: 'SERVER_ERROR', message: NetworkErrors.SERVER_ERROR };
+            if (!response.ok)            throw { type: 'UNKNOWN',      message: NetworkErrors.UNKNOWN      };
             return await response.json();
-
         } catch (err) {
-            // If this is a known typed error, don't retry — just throw it
             if (err.type) throw err;
-
-            // Timeout (AbortError)
             if (err.name === 'AbortError') {
-                if (attempt === retries) {
-                    throw { type: 'TIMEOUT', message: NetworkErrors.TIMEOUT };
-                }
+                if (attempt === retries) throw { type: 'TIMEOUT', message: NetworkErrors.TIMEOUT };
             }
-
-            // Network failure (no internet mid-request, DNS failure, etc.)
             if (err instanceof TypeError && err.message.includes('fetch')) {
-                if (attempt === retries) {
-                    throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
-                }
+                if (attempt === retries) throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
             }
-
-            // Wait before retrying — waits longer each attempt (1s, 2s, 3s)
             if (attempt < retries) {
                 showError(`Connection issue. Retrying... (${attempt}/${retries})`);
                 await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
@@ -101,14 +70,8 @@ function clearError() {
     errorMsg.classList.remove('show');
 }
 
-// ============================================================
-// ONLINE / OFFLINE EVENT LISTENERS
-// ============================================================
-window.addEventListener('offline', () => {
-    showError(NetworkErrors.OFFLINE);
-});
-
-window.addEventListener('online', () => {
+window.addEventListener('offline', () => { showError(NetworkErrors.OFFLINE); });
+window.addEventListener('online',  () => {
     clearError();
     showError('✅ Back online!');
     setTimeout(clearError, 2000);
@@ -124,9 +87,9 @@ function setUnit(unit) {
     document.getElementById('btnCelsius').classList.toggle('active', unit === 'C');
     document.getElementById('btnFahrenheit').classList.toggle('active', unit === 'F');
     if (window.currentWeatherData) displayWeatherData(window.currentWeatherData);
-    if (window.currentForecastData) {
+    if (window.currentForecastData && window.currentWeatherData) {
         const d = window.currentWeatherData;
-        if (d) displayForecastCalendar(window.currentForecastData, d.timezone, d.sys.sunrise, d.sys.sunset);
+        displayForecastCalendar(window.currentForecastData, d.timezone, d.coord.lat, d.coord.lon);
     }
     if (window.selectedDayData) renderArchFromForecastDay(window.selectedDayData);
 }
@@ -139,10 +102,9 @@ function tempLabel(celsius) {
 }
 
 // ============================================================
-// DEBOUNCE — prevents spamming API on every keypress
+// DEBOUNCE
 // ============================================================
 let searchDebounceTimer = null;
-
 function debounce(fn, delay = 500) {
     return function (...args) {
         clearTimeout(searchDebounceTimer);
@@ -151,23 +113,18 @@ function debounce(fn, delay = 500) {
 }
 
 // ============================================================
-// RATE LIMITER — tracks how many requests made recently
+// RATE LIMITER
 // ============================================================
 const rateLimiter = {
     requests: [],
-    maxRequests: 10,     // max 10 requests
-    windowMs: 60 * 1000, // per 60 seconds
-
+    maxRequests: 10,
+    windowMs: 60 * 1000,
     canMakeRequest() {
         const now = Date.now();
-        // Remove requests older than the window
         this.requests = this.requests.filter(t => now - t < this.windowMs);
         return this.requests.length < this.maxRequests;
     },
-
-    recordRequest() {
-        this.requests.push(Date.now());
-    }
+    recordRequest() { this.requests.push(Date.now()); }
 };
 
 // ============================================================
@@ -249,52 +206,86 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================================
-// INPUT SANITIZATION — cleans city input before using it
+// INPUT SANITIZATION
 // ============================================================
 function sanitizeCityInput(input) {
     return input
         .trim()
-        .replace(/[<>{}[\]\\^`|]/g, '') // remove dangerous characters
-        .replace(/\s+/g, ' ')           // collapse multiple spaces into one
-        .substring(0, 100);             // limit length
+        .replace(/[<>{}[\]\\^`|]/g, '')
+        .replace(/\s+/g, ' ')
+        .substring(0, 100);
 }
 
 // ============================================================
-// ACCURATE UV INDEX — Open-Meteo (free, no key needed)
+// OPEN-METEO: UV INDEX
 // ============================================================
 async function fetchRealUVIndex(lat, lon) {
     try {
         const data = await fetchWithRetry(
             `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=uv_index&forecast_days=1`,
-            {},
-            2,    // only 2 retries for secondary API
-            5000  // shorter timeout
+            {}, 2, 5000
         );
         return Math.round(data.current?.uv_index ?? 0);
-    } catch {
-        // UV is not critical — fail silently and return 0
-        return 0;
-    }
+    } catch { return 0; }
 }
 
 // ============================================================
-// ACCURATE AIR QUALITY — Open-Meteo Air Quality API
+// OPEN-METEO: ACCURATE DAILY ASTRONOMICAL DATA
+// Returns sunrise, sunset (ISO strings) for a given lat/lon
 // ============================================================
-async function fetchAirQuality(lat, lon) {
+async function fetchAstronomicalData(lat, lon, days = 14) {
     try {
         const data = await fetchWithRetry(
-            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5`,
-            {},
-            2,
-            5000
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+            `&daily=sunrise,sunset,moonrise,moonset&timezone=auto&forecast_days=${days}`,
+            {}, 2, 6000
         );
-        return {
-            aqi:  data.current?.us_aqi ?? null,
-            pm25: data.current?.pm2_5  ?? null
-        };
-    } catch {
-        return null;
-    }
+        return data;
+    } catch { return null; }
+}
+
+// ============================================================
+// OPEN-METEO: 14-DAY FORECAST (real daily data)
+// ============================================================
+async function fetchOpenMeteoForecast(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&daily=weathercode,temperature_2m_max,temperature_2m_min,apparent_temperature_max,` +
+        `apparent_temperature_min,precipitation_sum,windspeed_10m_max,windgusts_10m_max,` +
+        `precipitation_probability_max,relative_humidity_2m_max,relative_humidity_2m_min,` +
+        `pressure_msl_max,visibility_max,uv_index_max,sunrise,sunset` +
+        `&timezone=auto&forecast_days=14`;
+    return await fetchWithRetry(url, {}, 2, 8000);
+}
+
+// WMO weather code → description + icon mapping
+function wmoToWeather(code) {
+    const map = {
+        0:  { desc: 'Clear sky',           icon: '01d' },
+        1:  { desc: 'Mainly clear',        icon: '01d' },
+        2:  { desc: 'Partly cloudy',       icon: '02d' },
+        3:  { desc: 'Overcast',            icon: '04d' },
+        45: { desc: 'Fog',                 icon: '50d' },
+        48: { desc: 'Icy fog',             icon: '50d' },
+        51: { desc: 'Light drizzle',       icon: '09d' },
+        53: { desc: 'Moderate drizzle',    icon: '09d' },
+        55: { desc: 'Dense drizzle',       icon: '09d' },
+        61: { desc: 'Slight rain',         icon: '10d' },
+        63: { desc: 'Moderate rain',       icon: '10d' },
+        65: { desc: 'Heavy rain',          icon: '10d' },
+        71: { desc: 'Slight snow',         icon: '13d' },
+        73: { desc: 'Moderate snow',       icon: '13d' },
+        75: { desc: 'Heavy snow',          icon: '13d' },
+        77: { desc: 'Snow grains',         icon: '13d' },
+        80: { desc: 'Slight showers',      icon: '09d' },
+        81: { desc: 'Moderate showers',    icon: '09d' },
+        82: { desc: 'Violent showers',     icon: '09d' },
+        85: { desc: 'Slight snow showers', icon: '13d' },
+        86: { desc: 'Heavy snow showers',  icon: '13d' },
+        95: { desc: 'Thunderstorm',        icon: '11d' },
+        96: { desc: 'Thunderstorm w/ hail',icon: '11d' },
+        99: { desc: 'Thunderstorm w/ hail',icon: '11d' },
+    };
+    return map[code] || { desc: 'Unknown', icon: '02d' };
 }
 
 // ============================================================
@@ -308,9 +299,9 @@ function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     else if (['09d','09n','10d','10n'].includes(iconCode)) {
         videoFile = rainMmPerHour > 7.6 ? "heavy_rain.mp4" : "light_rain.mp4";
     }
-    else if (['11d','11n'].includes(iconCode))                          videoFile = "thunderstorm.mp4";
-    else if (['13d','13n'].includes(iconCode))                          videoFile = "snow.mp4";
-    else if (['50d','50n'].includes(iconCode))                          videoFile = "mist.mp4";
+    else if (['11d','11n'].includes(iconCode))  videoFile = "thunderstorm.mp4";
+    else if (['13d','13n'].includes(iconCode))  videoFile = "snow.mp4";
+    else if (['50d','50n'].includes(iconCode))  videoFile = "mist.mp4";
 
     const newSrc = `weather/${videoFile}`;
     if (bgVideo.getAttribute('src') === newSrc) return;
@@ -322,13 +313,7 @@ function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     const playPromise = bgVideo.play();
     if (playPromise !== undefined) {
         playPromise.catch(err => {
-            console.warn('Autoplay blocked:', err.message);
-            const retryPlay = () => {
-                bgVideo.play().catch(() => {});
-                document.removeEventListener('click',      retryPlay);
-                document.removeEventListener('keydown',    retryPlay);
-                document.removeEventListener('touchstart', retryPlay);
-            };
+            const retryPlay = () => { bgVideo.play().catch(() => {}); };
             document.addEventListener('click',      retryPlay, { once: true });
             document.addEventListener('keydown',    retryPlay, { once: true });
             document.addEventListener('touchstart', retryPlay, { once: true });
@@ -368,7 +353,7 @@ function createWeatherIcon(iconCode) {
 }
 
 // ============================================================
-// DISPLAY WEATHER DATA
+// DISPLAY WEATHER DATA (current conditions from OWM)
 // ============================================================
 async function displayWeatherData(data) {
     clearError();
@@ -393,9 +378,7 @@ async function displayWeatherData(data) {
     const lat = data.coord.lat;
     const lon = data.coord.lon;
     let uvIndex = 0;
-    if (isDay) {
-        uvIndex = await fetchRealUVIndex(lat, lon);
-    }
+    if (isDay) uvIndex = await fetchRealUVIndex(lat, lon);
     document.getElementById("uvBox").textContent = uvIndex;
     updateUVStatus(uvIndex);
 
@@ -413,8 +396,11 @@ async function displayWeatherData(data) {
     document.getElementById("condition").textContent =
         data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
 
+    // Accurate date/time using timezone offset from OWM
     updateDateTimeByTimezone(data);
-    updateSunMoonPanel(data);
+
+    // Accurate sun/moon from Open-Meteo astronomical API
+    await updateSunMoonPanel(data);
 
     document.querySelectorAll('.cal-day-card').forEach(c => c.classList.remove('selected-day'));
     const todayCard = document.querySelector('.cal-day-card[data-index="today"]');
@@ -422,24 +408,20 @@ async function displayWeatherData(data) {
 }
 
 // ============================================================
-// RENDER ARCH FROM FORECAST DAY
+// RENDER ARCH FROM FORECAST DAY (Open-Meteo forecast day click)
 // ============================================================
 function renderArchFromForecastDay(dayData) {
     window.selectedDayData = dayData;
 
-    const avgTemp  = dayData.temps.reduce((a, b) => a + b, 0) / dayData.temps.length;
-    const maxTemp  = Math.max(...dayData.temps);
-    const minTemp  = Math.min(...dayData.temps);
-    const avgHum   = Math.round(dayData.humidity.reduce((a, b) => a + b, 0) / dayData.humidity.length);
-    const avgWind  = (dayData.windSpeed.reduce((a, b) => a + b, 0) / dayData.windSpeed.length).toFixed(1);
-    const avgPress = Math.round(dayData.pressure.reduce((a, b) => a + b, 0) / dayData.pressure.length);
-    const avgFeels = dayData.feelsLike.reduce((a, b) => a + b, 0) / dayData.feelsLike.length;
-    const maxVis   = dayData.visibility.length > 0 ? (Math.max(...dayData.visibility) / 1000).toFixed(1) : '--';
-
-    const avgCloud = dayData.cloudCover.length > 0
-        ? Math.round(dayData.cloudCover.reduce((a, b) => a + b, 0) / dayData.cloudCover.length)
-        : 30;
-    let uv = avgCloud > 80 ? 1 : avgCloud > 50 ? 4 : avgCloud > 20 ? 6 : 8;
+    const maxTemp  = dayData.maxTemp;
+    const minTemp  = dayData.minTemp;
+    const avgTemp  = (maxTemp + minTemp) / 2;
+    const humidity = dayData.humidity;
+    const wind     = dayData.windSpeed;
+    const pressure = dayData.pressure;
+    const feelsMax = dayData.feelsMax;
+    const vis      = dayData.visibility;
+    const uv       = dayData.uvIndex;
 
     const isDay = true;
     const correctIconCode = getCorrectIconCode(dayData.icon, isDay);
@@ -461,21 +443,21 @@ function renderArchFromForecastDay(dayData) {
     dateTimeEl.textContent = `📅 Forecast: ${dayName}, ${dayNum} ${monthShort} ${year}`;
     if (clockInterval) clearInterval(clockInterval);
 
-    document.getElementById("humidityBox").textContent = `${avgHum}%`;
-    updateHumidityStatus(avgHum);
-    document.getElementById("windBox").textContent = `${avgWind} m/s`;
+    document.getElementById("humidityBox").textContent = `${humidity}%`;
+    updateHumidityStatus(humidity);
+    document.getElementById("windBox").textContent = `${wind} m/s`;
     document.getElementById("uvBox").textContent = uv;
     updateUVStatus(uv);
-    document.getElementById("visibilityBox").textContent = `${maxVis} km`;
-    document.getElementById("pressureBox").textContent = `${avgPress} hPa`;
-    updatePressureStatus(avgPress);
-    document.getElementById("feelsLikeBox").textContent = tempLabel(avgFeels);
-    updateFeelsLikeStatus(avgFeels, avgTemp);
+    document.getElementById("visibilityBox").textContent = `${vis} km`;
+    document.getElementById("pressureBox").textContent = `${pressure} hPa`;
+    updatePressureStatus(pressure);
+    document.getElementById("feelsLikeBox").textContent = tempLabel(feelsMax);
+    updateFeelsLikeStatus(feelsMax, maxTemp);
 
-    const condition = dayData.weather.description.charAt(0).toUpperCase() + dayData.weather.description.slice(1);
+    const condition = dayData.description.charAt(0).toUpperCase() + dayData.description.slice(1);
     document.getElementById("condition").textContent = condition;
 
-    updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp);
+    updateSunMoonPanelForecast(dayData);
 }
 
 function updateArchColor(temperature) {
@@ -527,13 +509,14 @@ function updateFeelsLikeStatus(feelsLike, actualTemp) {
 }
 
 // ============================================================
-// DATE / TIME
+// DATE / TIME — accurate to city timezone
 // ============================================================
 let clockInterval;
 
 function updateDateTimeByTimezone(data) {
     const dateTimeEl = document.getElementById("currentDateTime");
-    const timezoneOffsetSeconds = data.timezone;
+    const timezoneOffsetSeconds = data.timezone; // OWM gives seconds offset from UTC
+
     function updateClock() {
         const nowUTC = Math.floor(Date.now() / 1000);
         const cityTimeSeconds = nowUTC + timezoneOffsetSeconds;
@@ -559,65 +542,95 @@ function updateDateTimeByTimezone(data) {
 }
 
 // ============================================================
-// SUN / MOON PANEL
+// SUN / MOON PANEL — uses Open-Meteo astronomical data
 // ============================================================
-function updateSunMoonPanel(data) {
-    const timezone = data.timezone;
-    const sunrise  = data.sys.sunrise;
-    const sunset   = data.sys.sunset;
 
-    function toLocalTime(unixUtc) {
-        const cityTime = new Date((unixUtc + timezone) * 1000);
-        let h = cityTime.getUTCHours();
-        const m = cityTime.getUTCMinutes().toString().padStart(2,'0');
+// Cache astronomical data per location
+let cachedAstroData = null;
+let cachedAstroLatLon = null;
+
+async function updateSunMoonPanel(data) {
+    const lat = data.coord.lat;
+    const lon = data.coord.lon;
+    const timezone = data.timezone;
+
+    // Fetch accurate astronomical data from Open-Meteo
+    const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    if (cachedAstroLatLon !== cacheKey) {
+        cachedAstroData = await fetchAstronomicalData(lat, lon, 14);
+        cachedAstroLatLon = cacheKey;
+    }
+    window.cachedAstroData = cachedAstroData;
+
+    // Today's astronomical data (index 0)
+    let sunriseISO, sunsetISO;
+    if (cachedAstroData && cachedAstroData.daily) {
+        sunriseISO = cachedAstroData.daily.sunrise[0];
+        sunsetISO  = cachedAstroData.daily.sunset[0];
+    } else {
+        // Fallback to OWM data
+        sunriseISO = new Date(data.sys.sunrise * 1000).toISOString();
+        sunsetISO  = new Date(data.sys.sunset  * 1000).toISOString();
+    }
+
+    const sunriseDate = new Date(sunriseISO);
+    const sunsetDate  = new Date(sunsetISO);
+    const sunriseUTC  = Math.floor(sunriseDate.getTime() / 1000);
+    const sunsetUTC   = Math.floor(sunsetDate.getTime()  / 1000);
+
+    function formatLocalTime(isoString) {
+        // Parse ISO from Open-Meteo (local time string like "2024-01-15T06:12")
+        const parts = isoString.split('T');
+        if (parts.length < 2) return '--:--';
+        const timePart = parts[1]; // "06:12"
+        const [hStr, mStr] = timePart.split(':');
+        let h = parseInt(hStr, 10);
+        const m = mStr.padStart(2, '0');
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return `${h}:${m} ${ampm}`;
     }
 
-    const nowUTC = Math.floor(Date.now() / 1000);
-    const cityNow = nowUTC + timezone;
-    const totalDaylight = sunset - sunrise;
-    const elapsed = Math.max(0, Math.min(cityNow - sunrise, totalDaylight));
-    const progress = totalDaylight > 0 ? (elapsed / totalDaylight) * 100 : 0;
-    const isDay = isDayTime(timezone, sunrise, sunset);
+    const nowUTC     = Math.floor(Date.now() / 1000);
+    const cityNow    = nowUTC + timezone;
+    const totalDay   = sunsetUTC - sunriseUTC;
+    const elapsed    = Math.max(0, Math.min(cityNow - sunriseUTC, totalDay));
+    const progress   = totalDay > 0 ? (elapsed / totalDay) * 100 : 0;
+    const isDay      = cityNow >= sunriseUTC && cityNow < sunsetUTC;
+    const daylightMin = Math.round(totalDay / 60);
+    const dHours     = Math.floor(daylightMin / 60);
+    const dMins      = daylightMin % 60;
 
-    const daylightMinutes = Math.round(totalDaylight / 60);
-    const dHours = Math.floor(daylightMinutes / 60);
-    const dMins  = daylightMinutes % 60;
+    const moonPhase  = getMoonPhase(new Date());
 
-    const moonPhase = getMoonPhase(new Date());
-
-    document.getElementById('sunriseTime').textContent      = toLocalTime(sunrise);
-    document.getElementById('sunsetTime').textContent       = toLocalTime(sunset);
+    document.getElementById('sunriseTime').textContent      = formatLocalTime(sunriseISO);
+    document.getElementById('sunsetTime').textContent       = formatLocalTime(sunsetISO);
     document.getElementById('daylightDuration').textContent = `${dHours}h ${dMins}m`;
     document.getElementById('moonPhaseLabel').textContent   = moonPhase.name;
     document.getElementById('moonPhaseIcon').textContent    = moonPhase.emoji;
 
-    const dot = document.getElementById('sunArcDot');
     const clampedProgress = Math.max(0, Math.min(progress, 100));
-
     const arcPath = document.getElementById('sunArcPath');
     if (arcPath) {
         const totalLen = 150;
-        const dashOffset = totalLen - (clampedProgress / 100) * totalLen;
-        arcPath.style.strokeDashoffset = dashOffset;
+        arcPath.style.strokeDashoffset = totalLen - (clampedProgress / 100) * totalLen;
         arcPath.style.transition = 'stroke-dashoffset 1.2s ease';
     }
+    const dot = document.getElementById('sunArcDot');
     if (dot) {
         const angle = (clampedProgress / 100) * Math.PI;
         const cx = 50, cy = 80, rx = 45, ry = 45;
         const x = cx - rx * Math.cos(angle);
         const y = cy - ry * Math.sin(angle);
-        dot.style.left = `${x}%`;
-        dot.style.top  = `${y}%`;
+        dot.style.left    = `${x}%`;
+        dot.style.top     = `${y}%`;
         dot.style.display = isDay ? 'block' : 'none';
     }
 
     const statusEl = document.getElementById('sunStatusText');
     if (statusEl) {
         if (isDay) {
-            const remaining = sunset - cityNow;
+            const remaining = sunsetUTC - cityNow;
             if (remaining > 0) {
                 const rm = Math.round(remaining / 60);
                 const rh = Math.floor(rm / 60);
@@ -627,8 +640,8 @@ function updateSunMoonPanel(data) {
                 statusEl.textContent = '🌆 Past sunset';
             }
         } else {
-            const nextSunrise = sunrise + 86400;
-            const toSunrise = nextSunrise - cityNow;
+            const nextSunrise = sunriseUTC + 86400;
+            const toSunrise   = nextSunrise - cityNow;
             if (toSunrise > 0) {
                 const rm = Math.round(toSunrise / 60);
                 const rh = Math.floor(rm / 60);
@@ -641,33 +654,70 @@ function updateSunMoonPanel(data) {
     }
 }
 
-function updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp) {
+function updateSunMoonPanelForecast(dayData) {
+    function formatLocalTime(isoString) {
+        if (!isoString) return '--:--';
+        const parts = isoString.split('T');
+        if (parts.length < 2) return '--:--';
+        const timePart = parts[1];
+        const [hStr, mStr] = timePart.split(':');
+        let h = parseInt(hStr, 10);
+        const m = (mStr || '00').padStart(2, '0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${h}:${m} ${ampm}`;
+    }
+
     const d = dayData.date;
-    const dayStr = `${d.getUTCDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]}`;
-    const sunriseEl  = document.getElementById('sunriseTime');
-    const sunsetEl   = document.getElementById('sunsetTime');
-    const daylightEl = document.getElementById('daylightDuration');
-    const moonEl     = document.getElementById('moonPhaseLabel');
-    const moonIcon   = document.getElementById('moonPhaseIcon');
-    const statusEl   = document.getElementById('sunStatusText');
-    const dot        = document.getElementById('sunArcDot');
-    if (sunriseEl)  sunriseEl.textContent  = '~6:00 AM';
-    if (sunsetEl)   sunsetEl.textContent   = '~6:00 PM';
-    if (daylightEl) daylightEl.textContent = '~12h 0m';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dayStr = `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+
+    document.getElementById('sunriseTime').textContent  = dayData.sunrise ? formatLocalTime(dayData.sunrise) : '~6:00 AM';
+    document.getElementById('sunsetTime').textContent   = dayData.sunset  ? formatLocalTime(dayData.sunset)  : '~6:00 PM';
+
+    if (dayData.sunrise && dayData.sunset) {
+        const sr = new Date(dayData.sunrise);
+        const ss = new Date(dayData.sunset);
+        const diffMin = Math.round((ss - sr) / 60000);
+        const dh = Math.floor(diffMin / 60);
+        const dm = diffMin % 60;
+        document.getElementById('daylightDuration').textContent = `${dh}h ${dm}m`;
+    } else {
+        document.getElementById('daylightDuration').textContent = '~12h 0m';
+    }
+
     const phase = getMoonPhase(d);
-    if (moonEl)   moonEl.textContent   = phase.name;
-    if (moonIcon) moonIcon.textContent = phase.emoji;
-    if (statusEl) statusEl.textContent = `📅 Forecast for ${dayStr}`;
-    if (dot)      dot.style.display    = 'none';
+    document.getElementById('moonPhaseLabel').textContent = phase.name;
+    document.getElementById('moonPhaseIcon').textContent  = phase.emoji;
+    document.getElementById('sunStatusText').textContent  = `📅 Forecast for ${dayStr}`;
+    const dot = document.getElementById('sunArcDot');
+    if (dot) dot.style.display = 'none';
+
+    // Update arc to show full day (100%)
+    const arcPath = document.getElementById('sunArcPath');
+    if (arcPath) {
+        arcPath.style.strokeDashoffset = 0;
+    }
 }
 
+// Accurate moon phase calculation
 function getMoonPhase(date) {
-    const knownNewMoon = new Date('2024-01-11');
-    const diff = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+    // More accurate calculation using Julian date
+    const year  = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day   = date.getDate();
+
+    let jd = 367 * year
+        - Math.floor(7 * (year + Math.floor((month + 9) / 12)) / 4)
+        + Math.floor(275 * month / 9)
+        + day + 1721013.5;
+
+    const knownNewMoon = 2451550.1; // Jan 6, 2000 new moon Julian date
     const cycle = 29.53058867;
-    const phase = ((diff % cycle) + cycle) % cycle;
-    if      (phase < 1.84)  return { name: 'New Moon',        emoji: '🌑' };
-    else if (phase < 5.53)  return { name: 'Waxing Crescent', emoji: '🌒' };
+    const phase = ((jd - knownNewMoon) % cycle + cycle) % cycle;
+
+    if      (phase < 1.85)  return { name: 'New Moon',        emoji: '🌑' };
+    else if (phase < 5.54)  return { name: 'Waxing Crescent', emoji: '🌒' };
     else if (phase < 9.22)  return { name: 'First Quarter',   emoji: '🌓' };
     else if (phase < 12.91) return { name: 'Waxing Gibbous',  emoji: '🌔' };
     else if (phase < 16.61) return { name: 'Full Moon',       emoji: '🌕' };
@@ -678,7 +728,7 @@ function getMoonPhase(date) {
 }
 
 // ============================================================
-// 14-DAY FORECAST CALENDAR
+// 14-DAY FORECAST CALENDAR — Real Open-Meteo data
 // ============================================================
 function showCalendarShimmer() {
     const grid = document.getElementById('calendarGrid');
@@ -690,17 +740,13 @@ function showCalendarShimmer() {
     }
 }
 
-async function fetchForecast(city, timezone, sunrise, sunset) {
+async function fetchForecast(city, lat, lon) {
     showCalendarShimmer();
     try {
-        const sanitizedCity = encodeURIComponent(sanitizeCityInput(city));
-        const data = await fetchWithRetry(
-            `https://api.openweathermap.org/data/2.5/forecast?q=${sanitizedCity}&units=metric&appid=${apiKey}`
-        );
+        const data = await fetchOpenMeteoForecast(lat, lon);
         window.currentForecastData = data;
-        displayForecastCalendar(data, timezone, sunrise, sunset);
+        displayForecastCalendar(data, lat, lon);
     } catch (err) {
-        // Forecast failure is not critical — show a soft message in the calendar
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align:center; color:rgba(255,255,255,0.6); padding: 20px; font-size:13px;">
@@ -710,81 +756,44 @@ async function fetchForecast(city, timezone, sunrise, sunset) {
     }
 }
 
-function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
+function displayForecastCalendar(forecastData, lat, lon) {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
 
     const daysOfWeek = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    const nowUTC = Math.floor(Date.now() / 1000);
-    const cityLocalMs = (nowUTC + timezone) * 1000;
-    const cityDate = new Date(cityLocalMs);
-    const todayKey = `${cityDate.getUTCFullYear()}-${String(cityDate.getUTCMonth()+1).padStart(2,'0')}-${String(cityDate.getUTCDate()).padStart(2,'0')}`;
+    const daily = forecastData.daily;
+    const numDays = Math.min(daily.time.length, 14);
 
-    const dailyForecasts = {};
-    forecastData.list.forEach(item => {
-        const cityItemMs = (item.dt + timezone) * 1000;
-        const itemDate = new Date(cityItemMs);
-        const dayKey = `${itemDate.getUTCFullYear()}-${String(itemDate.getUTCMonth()+1).padStart(2,'0')}-${String(itemDate.getUTCDate()).padStart(2,'0')}`;
+    // Today's date string in local timezone from Open-Meteo (format: "2024-01-15")
+    const todayStr = daily.time[0];
 
-        if (!dailyForecasts[dayKey]) {
-            dailyForecasts[dayKey] = {
-                temps: [], humidity: [], windSpeed: [], pressure: [],
-                feelsLike: [], visibility: [], cloudCover: [],
-                weather: item.weather[0], icon: item.weather[0].icon,
-                date: itemDate, dt: item.dt
-            };
-        }
-        dailyForecasts[dayKey].temps.push(item.main.temp);
-        dailyForecasts[dayKey].humidity.push(item.main.humidity);
-        dailyForecasts[dayKey].windSpeed.push(item.wind.speed);
-        dailyForecasts[dayKey].pressure.push(item.main.pressure);
-        dailyForecasts[dayKey].feelsLike.push(item.main.feels_like);
-        if (item.visibility) dailyForecasts[dayKey].visibility.push(item.visibility);
-        if (item.clouds?.all !== undefined) dailyForecasts[dayKey].cloudCover.push(item.clouds.all);
+    for (let i = 0; i < numDays; i++) {
+        const dateStr   = daily.time[i];                         // "YYYY-MM-DD"
+        const dateObj   = new Date(dateStr + 'T12:00:00Z');      // noon UTC to avoid DST shifts
+        const maxTemp   = daily.temperature_2m_max[i];
+        const minTemp   = daily.temperature_2m_min[i];
+        const avgTemp   = (maxTemp + minTemp) / 2;
+        const wmo       = daily.weathercode[i];
+        const weather   = wmoToWeather(wmo);
+        const humidity  = Math.round((daily.relative_humidity_2m_max[i] + daily.relative_humidity_2m_min[i]) / 2);
+        const wind      = daily.windspeed_10m_max[i].toFixed(1);
+        const pressure  = Math.round(daily.pressure_msl_max[i]);
+        const feelsMax  = daily.apparent_temperature_max[i];
+        const vis       = daily.visibility_max ? (daily.visibility_max[i] / 1000).toFixed(1) : '--';
+        const uv        = daily.uv_index_max[i] !== undefined ? Math.round(daily.uv_index_max[i]) : 0;
+        const precip    = daily.precipitation_probability_max[i] || 0;
+        const precipMm  = daily.precipitation_sum[i] || 0;
+        const sunrise   = daily.sunrise ? daily.sunrise[i] : null;
+        const sunset    = daily.sunset  ? daily.sunset[i]  : null;
 
-        const hour = itemDate.getUTCHours();
-        if (hour >= 11 && hour <= 14) {
-            dailyForecasts[dayKey].weather = item.weather[0];
-            dailyForecasts[dayKey].icon = item.weather[0].icon;
-        }
-    });
+        const isToday = (dateStr === todayStr);
+        const isFirstFuture = (i === 1);
 
-    let forecastDays = Object.entries(dailyForecasts)
-        .filter(([key]) => key !== todayKey)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, value]) => value)
-        .slice(0, 5);
-
-    const extendedDays = [];
-    for (let i = 0; i < 14; i++) {
-        const sourceDay = forecastDays[i % forecastDays.length];
-        const slotMs = (nowUTC + timezone + (i + 1) * 86400) * 1000;
-        const slotDate = new Date(slotMs);
-        extendedDays.push({
-            ...sourceDay,
-            date: slotDate,
-            isExtrapolated: i >= forecastDays.length
-        });
-    }
-
-    extendedDays.forEach((dayData, index) => {
-        const avgTemp  = dayData.temps.reduce((a, b) => a + b, 0) / dayData.temps.length;
-        const maxTemp  = Math.max(...dayData.temps);
-        const minTemp  = Math.min(...dayData.temps);
-        const avgHum   = Math.round(dayData.humidity.reduce((a, b) => a + b, 0) / dayData.humidity.length);
-
-        const condition = dayData.weather.description.charAt(0).toUpperCase() + dayData.weather.description.slice(1);
-        const dayName    = daysOfWeek[dayData.date.getUTCDay()];
-        const dayNum     = dayData.date.getUTCDate();
-        const monthShort = monthNames[dayData.date.getUTCMonth()];
-
-        const card = document.createElement('div');
-        card.className = 'cal-day-card' + (index === 0 ? ' today' : '');
-        card.style.animationDelay = `${index * 0.04}s`;
-        card.dataset.index = index === 0 ? 'tomorrow' : index;
-        card.title = `Click to view ${index === 0 ? 'tomorrow' : dayName}'s forecast`;
+        const dayName    = daysOfWeek[dateObj.getUTCDay()];
+        const dayNum     = dateObj.getUTCDate();
+        const monthShort = monthNames[dateObj.getUTCMonth()];
 
         const tempDeg = Math.round(avgTemp);
         let tempColor = '#FFD580';
@@ -794,21 +803,49 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         else if (tempDeg >= 12) tempColor = '#81d4fa';
         else                    tempColor = '#90caf9';
 
+        const card = document.createElement('div');
+        card.className = 'cal-day-card' + (isToday ? ' today' : '');
+        card.style.animationDelay = `${i * 0.04}s`;
+        card.dataset.index = isToday ? 'today' : i;
+        card.title = `Click to view ${isToday ? "today's" : (isFirstFuture ? "tomorrow's" : dayName + "'s")} forecast`;
+
+        const labelText = isToday ? 'Today' : (isFirstFuture ? 'Tomorrow' : dayName);
+
         card.innerHTML = `
             <div class="cal-info">
-                <div class="cal-day-name">${index === 0 ? 'Tomorrow' : dayName}</div>
-                <div class="cal-date-label">${dayNum} ${monthShort}${dayData.isExtrapolated ? ' <span class="est-tag">est</span>' : ''}</div>
-                <div class="cal-condition">${condition}</div>
+                <div class="cal-day-name">${labelText}</div>
+                <div class="cal-date-label">${dayNum} ${monthShort}</div>
+                <div class="cal-condition">${weather.desc}</div>
                 <div class="cal-temps">
                     <span class="cal-high" style="color:${tempColor}">${tempLabel(maxTemp)}</span>
                     <span class="cal-sep">·</span>
                     <span class="cal-low">${tempLabel(minTemp)}</span>
                 </div>
-                <div class="cal-humidity">💧 ${avgHum}%</div>
+                <div class="cal-humidity">💧 ${humidity}% · 🌧️ ${precip}%</div>
             </div>
             <div class="cal-click-hint">
                 <span class="material-symbols-outlined">chevron_right</span>
             </div>`;
+
+        // Store rich day data for click handler
+        const dayData = {
+            date:        dateObj,
+            maxTemp,
+            minTemp,
+            avgTemp,
+            humidity,
+            windSpeed:   parseFloat(wind),
+            pressure,
+            feelsMax,
+            visibility:  vis,
+            uvIndex:     uv,
+            precip,
+            precipMm,
+            icon:        weather.icon,
+            description: weather.desc,
+            sunrise,
+            sunset,
+        };
 
         card.addEventListener('click', () => {
             document.querySelectorAll('.cal-day-card').forEach(c => c.classList.remove('selected-day'));
@@ -817,29 +854,26 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         });
 
         grid.appendChild(card);
-    });
+    }
 }
 
 // ============================================================
-// FETCH WEATHER — main entry point with full error handling
+// FETCH WEATHER — main entry point
 // ============================================================
 async function fetchWeather(city, saveToHistory = true) {
     clearError();
 
-    // Check rate limit before sending request
     if (!rateLimiter.canMakeRequest()) {
         showError(NetworkErrors.RATE_LIMIT);
         return;
     }
 
-    // Sanitize input
     const sanitizedCity = sanitizeCityInput(city);
     if (!sanitizedCity) {
         showError('Please enter a valid city name.');
         return;
     }
 
-    // Check if offline before even trying
     if (!navigator.onLine) {
         showError(NetworkErrors.OFFLINE);
         return;
@@ -853,13 +887,13 @@ async function fetchWeather(city, saveToHistory = true) {
         );
 
         await displayWeatherData(data);
-        fetchForecast(sanitizedCity, data.timezone, data.sys.sunrise, data.sys.sunset);
+        // Use lat/lon from OWM response for Open-Meteo forecast
+        fetchForecast(sanitizedCity, data.coord.lat, data.coord.lon);
         window.currentWeatherData = data;
 
         if (saveToHistory) addToHistory(sanitizedCity);
 
     } catch (err) {
-        // Show specific error based on what went wrong
         const message = err.message || NetworkErrors.UNKNOWN;
         showError(message);
         console.error('Weather fetch error:', err);
@@ -867,7 +901,7 @@ async function fetchWeather(city, saveToHistory = true) {
 }
 
 // ============================================================
-// HANDLE SEARCH — called when user presses Enter
+// HANDLE SEARCH
 // ============================================================
 function handleSearch() {
     const city = cityInput.value.trim();
@@ -879,12 +913,10 @@ function handleSearch() {
     fetchWeather(city);
 }
 
-// Debounced version so typing fast doesn't spam the API
 const debouncedSearch = debounce(handleSearch, 500);
 
 cityInput.addEventListener("keydown", e => {
     if (e.key === "Enter") {
-        // Clear the debounce and search immediately on Enter
         clearTimeout(searchDebounceTimer);
         handleSearch();
     }
@@ -894,7 +926,6 @@ cityInput.addEventListener("keydown", e => {
 // INIT
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
-    // Clean up corrupted localStorage history on load
     try {
         let history = JSON.parse(localStorage.getItem('weatherSearchHistory') || '[]');
         history = history.filter(h => typeof h === 'string' && h.trim().length > 0);
@@ -904,17 +935,18 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     fetchWeather("Manila", false);
-    initGlobe();
+    // Globe is NOT initialized here — only when opened
 });
 
 // ============================================================
-// GLOBE
+// GLOBE — rotation only active when globe is open
 // ============================================================
 let globe = null;
 let globeRotating = true;
 let rotationSpeed = 0.15;
 let rotationAnimFrame = null;
 let currentPOV = { lat: 0, lng: 0, altitude: 2.5 };
+let globeOpen = false; // Track globe visibility
 
 let globePanelVisible = true;
 let globePanelWidth = 280;
@@ -1017,11 +1049,9 @@ function initPanelResize() {
     const handle = document.getElementById('globePanelResizeHandle');
     const panel  = document.getElementById('globeWeatherPanel');
     if (!handle || !panel) return;
-
     let startX, startW;
-
     function onMouseMove(e) {
-        const dx = startX - e.clientX;
+        const dx  = startX - e.clientX;
         const newW = Math.min(globePanelMaxWidth, Math.max(globePanelMinWidth, startW + dx));
         panel.style.width = newW + 'px';
         globePanelWidth = newW;
@@ -1040,7 +1070,6 @@ function initPanelResize() {
         document.addEventListener('mouseup', onMouseUp);
         e.preventDefault();
     });
-
     handle.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
         startW = panel.offsetWidth;
@@ -1048,7 +1077,7 @@ function initPanelResize() {
         e.preventDefault();
     }, { passive: false });
     handle.addEventListener('touchmove', (e) => {
-        const dx = startX - e.touches[0].clientX;
+        const dx  = startX - e.touches[0].clientX;
         const newW = Math.min(globePanelMaxWidth, Math.max(globePanelMinWidth, startW + dx));
         panel.style.width = newW + 'px';
         globePanelWidth = newW;
@@ -1058,14 +1087,13 @@ function initPanelResize() {
     handle.addEventListener('touchend', () => handle.classList.remove('dragging'));
 }
 
-// ─── Globe weather fetch with full error handling ───────────
+// ─── Globe weather fetch ───────────
 async function fetchGlobeWeather(lat, lng, locationName) {
     document.getElementById('globeEmptyState').style.display = 'none';
     document.getElementById('globeLoading').style.display   = 'flex';
     const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox','globeUVBox'];
     boxIds.forEach(id => { document.getElementById(id).style.display = 'none'; });
 
-    // Check online status first
     if (!navigator.onLine) {
         document.getElementById('globeLoading').style.display = 'none';
         showGlobeError(NetworkErrors.OFFLINE);
@@ -1075,9 +1103,7 @@ async function fetchGlobeWeather(lat, lng, locationName) {
     try {
         const data = await fetchWithRetry(
             `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`,
-            {},
-            3,
-            8000
+            {}, 3, 8000
         );
 
         const isDay = data.dt >= data.sys.sunrise && data.dt <= data.sys.sunset;
@@ -1119,7 +1145,6 @@ async function fetchGlobeWeather(lat, lng, locationName) {
         document.getElementById('globeUVDetail').textContent = getUVLabel(uvIndex);
 
         document.getElementById('globeLoading').style.display = 'none';
-
         boxIds.forEach(id => {
             if (globeBoxVisibility[id] !== false) {
                 document.getElementById(id).style.display = 'flex';
@@ -1133,20 +1158,16 @@ async function fetchGlobeWeather(lat, lng, locationName) {
     }
 }
 
-// Helper to show error inside globe panel
 function showGlobeError(message) {
     const emptyState = document.getElementById('globeEmptyState');
     emptyState.style.display = 'flex';
     emptyState.innerHTML = `
         <div style="font-size:40px;text-align:center;margin-bottom:12px">⚠️</div>
-        <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">
-            ${message}
-        </p>
+        <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">${message}</p>
         <button onclick="location.reload()" style="
             margin-top:12px; padding:8px 16px;
             background:rgba(0,198,255,0.2); border:1px solid rgba(0,198,255,0.5);
-            color:white; border-radius:8px; cursor:pointer; font-size:12px;
-        ">Try Again</button>`;
+            color:white; border-radius:8px; cursor:pointer; font-size:12px;">Try Again</button>`;
 }
 
 function getUVLabel(uv) {
@@ -1158,9 +1179,11 @@ function getUVLabel(uv) {
     return 'Extreme';
 }
 
+// ─── Globe init — only called when globe is first opened ───
 function initGlobe() {
     const container = document.getElementById('globeViz');
     if (!container || typeof Globe === 'undefined') return;
+
     globe = Globe()
         .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
         .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
@@ -1181,8 +1204,12 @@ function initGlobe() {
         .onGlobeClick(({ lat, lng }) => handleGlobeClick(lat, lng))
         .onLabelClick(d => handleCityLabelClick(d))
         (container);
+
     globe.pointOfView({ lat: 14.5995, lng: 120.9842, altitude: 2.5 }, 1000);
     currentPOV = { lat: 14.5995, lng: 120.9842, altitude: 2.5 };
+
+    // Start rotation since globe is now open
+    globeRotating = true;
     startRotation();
     setupGlobeControls();
     initPanelResize();
@@ -1208,17 +1235,27 @@ function handleCityLabelClick(city) {
     fetchGlobeWeather(city.lat, city.lng, city.name);
     setTimeout(() => { globeRotating = true; }, 4000);
 }
+
 function startRotation() {
     if (rotationAnimFrame) cancelAnimationFrame(rotationAnimFrame);
     function rotate() {
-        if (globe && globeRotating) {
+        if (globe && globeRotating && globeOpen) {
             const pov = globe.pointOfView();
             globe.pointOfView({ lat: pov.lat, lng: pov.lng + rotationSpeed, altitude: pov.altitude });
         }
+        // Always keep the loop alive so we can resume when globe reopens
         rotationAnimFrame = requestAnimationFrame(rotate);
     }
     rotate();
 }
+
+function stopRotation() {
+    if (rotationAnimFrame) {
+        cancelAnimationFrame(rotationAnimFrame);
+        rotationAnimFrame = null;
+    }
+}
+
 function setupGlobeControls() {
     document.getElementById('globeZoomIn').addEventListener('click', () => {
         const pov = globe.pointOfView();
@@ -1266,9 +1303,7 @@ function nudgeGlobe(latDelta, lngDelta) {
 function handleGlobeKeyboard(e) {
     const activeTag = document.activeElement.tagName;
     if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
-    const globeSection = document.getElementById('globeSection');
-    if (!globeSection || globeSection.style.display === 'none') return;
-    if (!globe) return;
+    if (!globeOpen || !globe) return;
     switch (e.key) {
         case 'ArrowUp':    e.preventDefault(); nudgeGlobe(5, 0);   break;
         case 'ArrowDown':  e.preventDefault(); nudgeGlobe(-5, 0);  break;
@@ -1283,14 +1318,36 @@ function handleGlobeKeyboard(e) {
             break;
     }
 }
+
 function toggleGlobeView() {
     const globeSection = document.getElementById('globeSection');
-    if (globeSection.style.display === 'none' || globeSection.style.display === '') {
+    const isHidden = globeSection.style.display === 'none' || globeSection.style.display === '';
+
+    if (isHidden) {
+        // OPEN globe
         globeSection.style.display = 'block';
-        if (!globe) { setTimeout(initGlobe, 100); }
-        else { setTimeout(resizeGlobe, 100); }
+        globeOpen = true;
+
+        if (!globe) {
+            // First open — initialize the globe and start rotation
+            setTimeout(() => {
+                initGlobe();
+            }, 100);
+        } else {
+            // Already initialized — resume rotation and resize
+            globeRotating = true;
+            const icon = document.getElementById('pauseIcon');
+            if (icon) icon.textContent = 'pause';
+            setTimeout(resizeGlobe, 100);
+            // Restart rAF loop if it was stopped
+            if (!rotationAnimFrame) startRotation();
+        }
     } else {
+        // CLOSE globe — stop rotation to save resources
         globeSection.style.display = 'none';
+        globeOpen = false;
+        // Stop the rAF loop entirely
+        stopRotation();
     }
 }
 
@@ -1344,20 +1401,15 @@ function hideTypingIndicator() {
     if (typingIndicator) typingIndicator.remove();
 }
 
-// Chat weather fetch — also uses proper error handling
 async function fetchWeatherDataChat(city) {
     try {
         const sanitized = sanitizeCityInput(city);
         const data = await fetchWithRetry(
             `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(sanitized)}&units=metric&appid=${apiKey}`,
-            {},
-            2,
-            6000
+            {}, 2, 6000
         );
         return data;
-    } catch (err) {
-        return null; // chat handles null gracefully
-    }
+    } catch (err) { return null; }
 }
 
 function classifyIntent(message) {
@@ -1380,6 +1432,7 @@ function classifyIntent(message) {
     if (/\b(weather|forecast|panahon|climate|conditions)\b/i.test(m))                             return 'weather_general';
     return 'unknown';
 }
+
 async function generateNLPResponse(userMessage) {
     const intent = classifyIntent(userMessage);
     const hasWeatherData = window.currentWeatherData;
@@ -1427,6 +1480,7 @@ async function generateNLPResponse(userMessage) {
     }
     return response;
 }
+
 function getClothingAdvice(tempC) {
     if (tempC > 30) return "Wear light, breathable clothing! Shorts, t-shirts, sandals! 🩳👕";
     if (tempC > 25) return "Light summer clothes are perfect! 👗👔";
@@ -1435,6 +1489,7 @@ function getClothingAdvice(tempC) {
     if (tempC > 10) return "Wear a jacket! It's getting cold! 🧥❄️";
     return "Bundle up! Heavy jacket, warm clothes, maybe a scarf! 🧣🧥";
 }
+
 function extractCityFromMessage(message) {
     const patterns = [
         /weather (?:in|at|for) ([a-z\s]+?)(?:\?|$)/i,
@@ -1449,6 +1504,7 @@ function extractCityFromMessage(message) {
     }
     return null;
 }
+
 function getWeatherEmoji(iconCode) {
     if (iconCode.startsWith('01')) return '☀️';
     if (iconCode.startsWith('02')) return '⛅';
@@ -1459,6 +1515,7 @@ function getWeatherEmoji(iconCode) {
     if (iconCode.startsWith('50')) return '🌫️';
     return '🌤️';
 }
+
 function createWeatherCard(data) {
     const emoji = getWeatherEmoji(data.weather[0].icon);
     const description = data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
@@ -1476,6 +1533,7 @@ function createWeatherCard(data) {
             </div>
         </div>`;
 }
+
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
@@ -1509,7 +1567,6 @@ async function sendMessage() {
             hideTypingIndicator();
             addMessage(insight, false);
         } else {
-            // Network error message in chat
             if (!navigator.onLine) {
                 addMessage("You seem to be offline! 📡 Check your internet connection and try again.", false);
             } else {
