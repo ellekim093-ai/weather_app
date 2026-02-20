@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
 
   <style>
     /* ── GREETING OVERLAY ── */
@@ -117,30 +116,6 @@
       box-shadow: 0 6px 20px rgba(102,126,234,0.7);
     }
     #greetingSubmitBtn:active { transform: scale(0.97); }
-
-    /* ── HEADER GREETING TEXT ── */
-    #headerGreeting {
-      display: none;
-      font-size: clamp(11px, 1.1vw, 15px);
-      color: rgba(255,255,255,0.92);
-      font-weight: 500;
-      font-family: 'Poppins', sans-serif;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 20px;
-      padding: clamp(4px, 0.4vw, 7px) clamp(12px, 1.2vw, 20px);
-      white-space: nowrap;
-      letter-spacing: 0.2px;
-      position: absolute;
-      right: clamp(12px, 2vw, 30px);
-      top: 50%;
-      transform: translateY(-50%);
-      animation: popIn 0.5s ease;
-    }
-    @keyframes popIn {
-      from { opacity: 0; transform: translateY(-50%) scale(0.85); }
-      to   { opacity: 1; transform: translateY(-50%) scale(1);    }
-    }
   </style>
 </head>
 <body>
@@ -150,7 +125,7 @@
     <div class="greeting-box">
       <span class="greeting-emoji">🌤️</span>
       <h2>Welcome to Smart Weather!</h2>
-      <p>Who’s checking the weather today?</p>
+      <p>Who's checking the weather today?</p>
       <div class="greeting-input-row">
         <input type="text" id="greetingNameInput" placeholder="Your name or nickname..." maxlength="30" />
         <button id="greetingSubmitBtn" onclick="submitGreeting()">Let's Go!</button>
@@ -164,7 +139,6 @@
     <div class="top-header">
       <h1>Smart Weather Platform</h1>
       <p>Check the latest weather updates here.</p>
-      <div id="headerGreeting"></div>
     </div>
 
     <div class="search-container">
@@ -188,8 +162,11 @@
     <!-- MAIN CONTENT ROW: bg-info + 14-day calendar -->
     <div class="content-row">
 
-      <!-- LEFT COLUMN: bg-information + sun/moon panel -->
+      <!-- LEFT COLUMN: greeting banner + bg-information + sun/moon panel -->
       <div class="left-column">
+
+        <!-- GREETING BANNER — sits above arch card, fully styled via style.css -->
+        <div id="archGreeting"></div>
 
         <div class="bg-information-container">
           <!-- ARCH INFO -->
@@ -257,19 +234,16 @@
           </div>
         </div>
 
-        <!-- SUN & MOON PANEL (new feature) -->
+        <!-- SUN & MOON PANEL -->
         <div class="sun-moon-panel">
           <div class="sun-moon-header">
             <span class="material-symbols-outlined">wb_twilight</span>
             <span>Sun &amp; Moon</span>
           </div>
 
-          <!-- Sun Arc -->
           <div class="sun-arc-wrapper">
             <svg class="sun-arc-svg" viewBox="0 0 100 55" preserveAspectRatio="none">
-              <!-- background arc -->
               <path d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round"/>
-              <!-- progress arc (drawn via JS via clip) -->
               <path id="sunArcPath" d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="url(#sunGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="150" stroke-dashoffset="150"/>
               <defs>
                 <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -279,17 +253,13 @@
                 </linearGradient>
               </defs>
             </svg>
-            <!-- Moving sun dot -->
             <div class="sun-arc-dot" id="sunArcDot">☀️</div>
-            <!-- Labels -->
             <div class="sun-label left">🌅 <span id="sunriseTime">--:--</span></div>
             <div class="sun-label right">🌇 <span id="sunsetTime">--:--</span></div>
           </div>
 
-          <!-- Status text -->
           <div class="sun-status-text" id="sunStatusText">Loading...</div>
 
-          <!-- Info row -->
           <div class="sun-moon-info-row">
             <div class="sun-moon-info-box">
               <span class="material-symbols-outlined smi-icon">schedule</span>
@@ -499,10 +469,10 @@
         return;
       }
 
-      // Show greeting in header
-      const headerGreeting = document.getElementById('headerGreeting');
-      headerGreeting.textContent = `Hi, ${name}! 👋 Here's the weather for today`;
-      headerGreeting.style.display = 'block';
+      // Populate text and reveal via CSS class — all sizing/styling lives in style.css
+      const archGreeting = document.getElementById('archGreeting');
+      archGreeting.textContent = `👋 Hi, ${name}! Here's the weather for today`;
+      archGreeting.classList.add('visible');
 
       // Hide overlay with fade
       const overlay = document.getElementById('greetingOverlay');

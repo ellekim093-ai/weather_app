@@ -299,6 +299,50 @@ html, body {
 }
 
 /* ============================================================
+   ARCH GREETING BANNER
+   — hidden by default; JS adds .visible to show it
+   — adjust width, font-size, padding here freely
+   ============================================================ */
+#archGreeting {
+    /* ── layout ── */
+    display: none;           /* hidden until .visible is added */
+    width: 95%;              /* ← change this to adjust banner width */
+    box-sizing: border-box;
+    align-self: center;      /* centre inside left-column flex */
+    flex-shrink: 0;
+
+    /* ── spacing ── */
+    padding: clamp(8px, 1vw, 13px) clamp(14px, 1.5vw, 22px);
+
+    /* ── visual ── */
+    background: rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+
+    /* ── text ── */
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(12px, 1.1vw, 16px);  /* ← change font size here */
+    font-weight: 500;
+    text-align: center;
+    letter-spacing: 0.2px;
+}
+
+/* shown state — JS adds this class */
+#archGreeting.visible {
+    display: block;
+    animation: archGreetingIn 0.5s ease;
+}
+
+@keyframes archGreetingIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ============================================================
    SUN & MOON PANEL
    ============================================================ */
 .sun-moon-panel {
@@ -352,7 +396,6 @@ html, body {
     filter: drop-shadow(0 0 6px rgba(250,204,21,0.9));
     transition: left 0.8s ease, top 0.8s ease;
     pointer-events: none;
-    /* default position: top center */
     left: 50%;
     top: 10%;
 }
@@ -571,7 +614,6 @@ html, body {
 .cal-high {
     font-size: clamp(12px, 1.1vw, 16px);
     font-weight: 700;
-    /* color set inline by JS */
 }
 .cal-sep {
     color: rgba(255,255,255,0.3);
@@ -1058,7 +1100,6 @@ html, body {
     .globe-empty-state    { min-width: 200px; }
 }
 
-/* Stack content-row to column on narrow screens */
 @media (max-width: 900px) {
     .content-row {
         flex-direction: column;
@@ -1080,6 +1121,10 @@ html, body {
         grid-template-columns: 1fr 1fr;
     }
     .sun-moon-panel {
+        width: 100%;
+    }
+    /* on narrow screens, banner fills the column */
+    #archGreeting {
         width: 100%;
     }
 }
