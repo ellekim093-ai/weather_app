@@ -299,39 +299,168 @@ html, body {
 }
 
 /* ============================================================
+   GREETING OVERLAY
+   — Moved here from inline <style> in index.html
+   ============================================================ */
+#greetingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInOverlay 0.5s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+#greetingOverlay.hide {
+    animation: fadeOutOverlay 0.5s ease forwards;
+}
+
+@keyframes fadeOutOverlay {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+.greeting-box {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: clamp(30px, 4vw, 60px) clamp(30px, 5vw, 70px);
+    text-align: center;
+    color: white;
+    max-width: clamp(300px, 50vw, 520px);
+    width: 90vw;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUpBox 0.5s ease;
+}
+
+@keyframes slideUpBox {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+.greeting-box .greeting-emoji {
+    font-size: clamp(40px, 6vw, 70px);
+    margin-bottom: 10px;
+    display: block;
+    animation: waveSun 2s ease-in-out infinite;
+}
+
+@keyframes waveSun {
+    0%,100% { transform: rotate(-10deg) scale(1);   }
+    50%      { transform: rotate(10deg)  scale(1.1); }
+}
+
+.greeting-box h2 {
+    font-size: clamp(18px, 2.8vw, 32px);
+    font-weight: 700;
+    margin: 0 0 6px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.greeting-box p {
+    font-size: clamp(12px, 1.2vw, 16px);
+    opacity: 0.75;
+    margin: 0 0 24px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.greeting-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+#greetingNameInput {
+    flex: 1;
+    padding: clamp(9px, 1vw, 14px) clamp(14px, 1.5vw, 20px);
+    border-radius: 30px;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: clamp(13px, 1.2vw, 17px);
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    min-width: 0;
+}
+
+#greetingNameInput::placeholder { color: rgba(255,255,255,0.5); }
+
+#greetingNameInput:focus {
+    border-color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.18);
+}
+
+#greetingSubmitBtn {
+    padding: clamp(9px, 1vw, 14px) clamp(18px, 2vw, 28px);
+    border-radius: 30px;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: clamp(13px, 1.2vw, 17px);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(102,126,234,0.5);
+}
+
+#greetingSubmitBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(102,126,234,0.7);
+}
+
+#greetingSubmitBtn:active { transform: scale(0.97); }
+
+/* ── Mobile greeting adjustments ── */
+@media (max-width: 480px) {
+    .greeting-input-row {
+        flex-direction: column;   /* stack input + button vertically on tiny screens */
+        gap: 12px;
+    }
+    #greetingNameInput {
+        width: 100%;
+    }
+    #greetingSubmitBtn {
+        width: 100%;
+    }
+}
+
+/* ============================================================
    ARCH GREETING BANNER
    — hidden by default; JS adds .visible to show it
-   — adjust width, font-size, padding here freely
    ============================================================ */
 #archGreeting {
-    /* ── layout ── */
-    display: none;           /* hidden until .visible is added */
-    width: 95%;              /* ← change this to adjust banner width */
+    display: none;
+    width: 95%;
     box-sizing: border-box;
-    align-self: center;      /* centre inside left-column flex */
+    align-self: center;
     flex-shrink: 0;
-
-    /* ── spacing ── */
     padding: clamp(8px, 1vw, 13px) clamp(14px, 1.5vw, 22px);
-
-    /* ── visual ── */
     background: rgba(255, 255, 255, 0.13);
     border: 1px solid rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-radius: 14px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
-
-    /* ── text ── */
     color: white;
     font-family: 'Poppins', sans-serif;
-    font-size: clamp(12px, 1.1vw, 16px);  /* ← change font size here */
+    font-size: clamp(12px, 1.1vw, 16px);
     font-weight: 500;
     text-align: center;
     letter-spacing: 0.2px;
 }
 
-/* shown state — JS adds this class */
 #archGreeting.visible {
     display: block;
     animation: archGreetingIn 0.5s ease;
@@ -388,7 +517,6 @@ html, body {
     display: block;
 }
 
-/* The moving sun emoji dot */
 .sun-arc-dot {
     position: absolute;
     font-size: clamp(16px, 2vw, 24px);
@@ -415,7 +543,6 @@ html, body {
 .sun-label.right { right: 0; }
 .sun-label span  { color: white; font-size: clamp(11px, 1.1vw, 14px); }
 
-/* Status */
 .sun-status-text {
     text-align: center;
     font-size: clamp(11px, 1.05vw, 14px);
@@ -427,14 +554,13 @@ html, body {
     padding: 5px 14px;
 }
 
-/* Info row */
 .sun-moon-info-row {
     display: flex;
     gap: clamp(8px, 1.2vw, 16px);
 }
 .sun-moon-info-box {
     flex: 1;
-    background: rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.13);
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 14px;
     padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 18px);
@@ -442,9 +568,6 @@ html, body {
     align-items: center;
     gap: clamp(8px, 1vw, 14px);
     transition: background 0.25s ease;
-}
-.sun-moon-info-box {
-    background: rgba(255,255,255,0.13);
 }
 .smi-icon {
     font-size: clamp(20px, 2.2vw, 30px);
@@ -522,7 +645,6 @@ html, body {
     gap: clamp(6px, 1vw, 10px);
 }
 
-/* ─ Calendar Card ─ */
 .cal-day-card {
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.12);
@@ -553,7 +675,6 @@ html, body {
     transform: translateY(-2px);
 }
 
-/* Chevron hint */
 .cal-click-hint {
     flex-shrink: 0;
     display: flex;
@@ -570,10 +691,7 @@ html, body {
     opacity: 1;
 }
 
-.cal-info {
-    flex: 1;
-    min-width: 0;
-}
+.cal-info { flex: 1; min-width: 0; }
 .cal-day-name {
     font-size: clamp(11px, 1.05vw, 14px);
     font-weight: 700;
@@ -629,7 +747,6 @@ html, body {
     margin-top: 2px;
 }
 
-/* calendar loading shimmer */
 .cal-shimmer {
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.09);
@@ -993,13 +1110,54 @@ html, body {
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typing { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
 
-.chat-input-container { padding: clamp(10px, 1.2vw, 16px); background: white; border-top: 1px solid #e0e0e0; display: flex; gap: 8px; }
-.chat-input { flex: 1; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 20px; font-size: clamp(13px, 1vw, 16px); outline: none; transition: 0.3s ease; font-family: "Poppins", sans-serif; pointer-events: auto !important; cursor: text !important; }
+/* ── FIX: Chat input row — send button always visible on mobile ── */
+.chat-input-container {
+    padding: clamp(10px, 1.2vw, 16px);
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;    /* vertically centre input + button */
+    gap: 8px;
+    flex-shrink: 0;         /* never let this row collapse */
+    box-sizing: border-box;
+    width: 100%;
+}
+.chat-input {
+    flex: 1;
+    min-width: 0;           /* allows flex child to shrink below content size */
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 20px;
+    font-size: clamp(13px, 1vw, 16px);
+    outline: none;
+    transition: 0.3s ease;
+    font-family: "Poppins", sans-serif;
+    pointer-events: auto !important;
+    cursor: text !important;
+    box-sizing: border-box;
+}
 .chat-input:focus { border-color: #667eea; }
-.send-btn { width: clamp(36px, 3.5vw, 44px); height: clamp(36px, 3.5vw, 44px); background: linear-gradient(135deg, #667eea, #764ba2); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s ease; pointer-events: auto !important; }
+
+.send-btn {
+    /* Fixed size so it never disappears when the input is wide */
+    width: 44px;
+    height: 44px;
+    min-width: 44px;        /* prevent flex from squishing it */
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s ease;
+    pointer-events: auto !important;
+}
 .send-btn:hover  { transform: scale(1.05); }
 .send-btn:active { transform: scale(0.95); }
-.send-btn .material-symbols-outlined { font-size: clamp(16px, 1.5vw, 22px); }
+.send-btn .material-symbols-outlined { font-size: 22px; }
 
 .weather-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px; border-radius: 8px; margin-top: 8px; }
 .weather-card h3 { margin-bottom: 8px; font-size: clamp(13px, 1.2vw, 17px); }
@@ -1036,68 +1194,270 @@ html, body {
 }
 .globe-toggle-btn:hover { transform: scale(1.1) rotate(20deg); }
 
-.globe-section { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 9999; display: none; overflow: hidden; pointer-events: auto !important; }
+.globe-section {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.95);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: none;
+    overflow: hidden;
+    pointer-events: auto !important;
+}
 
-.globe-header { padding: clamp(12px, 1.5vw, 22px); background: linear-gradient(135deg, #00c6ff, #0072ff); display: flex; justify-content: space-between; align-items: center; }
-.globe-header h2 { color: white; font-size: clamp(16px, 1.8vw, 26px); margin: 0; font-weight: 600; }
-.globe-close-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: clamp(22px, 2.5vw, 34px); width: clamp(36px, 3.5vw, 46px); height: clamp(36px, 3.5vw, 46px); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s ease; pointer-events: auto !important; }
+.globe-header {
+    padding: clamp(10px, 1.5vw, 22px);
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.globe-header h2 { color: white; font-size: clamp(14px, 1.8vw, 26px); margin: 0; font-weight: 600; }
+.globe-close-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: clamp(22px, 2.5vw, 34px);
+    width: clamp(36px, 3.5vw, 46px);
+    height: clamp(36px, 3.5vw, 46px);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s ease;
+    pointer-events: auto !important;
+}
 .globe-close-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
 
-.globe-content { display: flex; gap: clamp(12px, 1.5vw, 22px); padding: clamp(12px, 1.5vw, 22px); height: calc(100vh - 80px); }
+/* ── FIX: Globe content — portrait mobile stacks properly ── */
+.globe-content {
+    display: flex;
+    gap: clamp(8px, 1.5vw, 22px);
+    padding: clamp(8px, 1.5vw, 22px);
+    /* Use the actual remaining height after the header */
+    height: calc(100vh - clamp(46px, 7vw, 78px));
+    box-sizing: border-box;
+    overflow: hidden;
+}
 
-.globe-container { flex: 1; position: relative; background: rgba(0,0,0,0.3); border-radius: 15px; overflow: hidden; border: 2px solid rgba(0,198,255,0.3); touch-action: none; }
+/* Globe canvas fills all remaining height */
+.globe-container {
+    flex: 1;
+    position: relative;
+    background: rgba(0,0,0,0.3);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 2px solid rgba(0,198,255,0.3);
+    touch-action: none;
+    /* Ensure it never collapses */
+    min-height: 0;
+}
+
 #globeViz { width: 100%; height: 100%; cursor: grab; }
 #globeViz:active { cursor: grabbing; }
 
-.globe-controls-overlay { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10; }
-.globe-control-btn { width: clamp(36px, 3.5vw, 46px); height: clamp(36px, 3.5vw, 46px); background: rgba(0,0,0,0.65); backdrop-filter: blur(10px); border: 2px solid rgba(0,198,255,0.5); border-radius: 10px; color: #00c6ff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; pointer-events: auto !important; }
+.globe-controls-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+}
+.globe-control-btn {
+    width: clamp(32px, 3.5vw, 46px);
+    height: clamp(32px, 3.5vw, 46px);
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(0,198,255,0.5);
+    border-radius: 10px;
+    color: #00c6ff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    pointer-events: auto !important;
+}
 .globe-control-btn:hover  { background: rgba(0,198,255,0.25); border-color: #00c6ff; transform: scale(1.1); }
 .globe-control-btn:active { transform: scale(0.95); }
-.globe-control-btn .material-symbols-outlined { font-size: clamp(16px, 1.6vw, 22px); }
+.globe-control-btn .material-symbols-outlined { font-size: clamp(14px, 1.6vw, 22px); }
 
 .globe-arrow-controls { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 6px; }
 .globe-arrow-middle   { display: flex; gap: 4px; align-items: center; }
-.globe-arrow-btn { width: clamp(32px, 3vw, 42px); height: clamp(32px, 3vw, 42px); background: rgba(0,0,0,0.65); backdrop-filter: blur(10px); border: 2px solid rgba(0,198,255,0.4); border-radius: 8px; color: #00c6ff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; user-select: none; pointer-events: auto !important; }
+.globe-arrow-btn {
+    width: clamp(28px, 3vw, 42px);
+    height: clamp(28px, 3vw, 42px);
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(0,198,255,0.4);
+    border-radius: 8px;
+    color: #00c6ff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    user-select: none;
+    pointer-events: auto !important;
+}
 .globe-arrow-btn:hover  { background: rgba(0,198,255,0.25); border-color: #00c6ff; transform: scale(1.1); }
 .globe-arrow-btn:active { background: rgba(0,198,255,0.45); transform: scale(0.92); }
-.globe-arrow-btn .material-symbols-outlined { font-size: clamp(14px, 1.4vw, 20px); }
+.globe-arrow-btn .material-symbols-outlined { font-size: clamp(12px, 1.4vw, 20px); }
 
-.globe-info-overlay { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); padding: clamp(10px, 1.2vw, 17px); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(0,198,255,0.3); min-width: clamp(160px, 18vw, 230px); z-index: 10; }
-.globe-info-item { display: flex; align-items: center; gap: 10px; color: white; }
-.globe-info-item .material-symbols-outlined { font-size: clamp(18px, 2vw, 26px); color: #00c6ff; }
-.globe-info-label { font-size: clamp(9px, 0.85vw, 13px); opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
-.globe-info-value { font-size: clamp(12px, 1.3vw, 17px); font-weight: 600; color: white; word-break: break-word; }
+.globe-info-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    padding: clamp(8px, 1.2vw, 17px);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(0,198,255,0.3);
+    min-width: clamp(130px, 18vw, 230px);
+    z-index: 10;
+}
+.globe-info-item { display: flex; align-items: center; gap: 8px; color: white; }
+.globe-info-item .material-symbols-outlined { font-size: clamp(16px, 2vw, 26px); color: #00c6ff; }
+.globe-info-label { font-size: clamp(8px, 0.85vw, 13px); opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+.globe-info-value { font-size: clamp(11px, 1.3vw, 17px); font-weight: 600; color: white; word-break: break-word; }
 
-.globe-instructions { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); padding: clamp(7px, 0.8vw, 12px) clamp(14px, 1.5vw, 22px); border-radius: 20px; color: white; font-size: clamp(10px, 1vw, 14px); border: 1px solid rgba(0,198,255,0.3); white-space: nowrap; z-index: 10; }
+.globe-instructions {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
+    padding: clamp(5px, 0.8vw, 12px) clamp(10px, 1.5vw, 22px);
+    border-radius: 20px;
+    color: white;
+    font-size: clamp(9px, 1vw, 14px);
+    border: 1px solid rgba(0,198,255,0.3);
+    white-space: nowrap;
+    z-index: 10;
+}
 
-.globe-weather-boxes { width: clamp(220px, 24vw, 320px); display: flex; flex-direction: column; gap: clamp(8px, 1vw, 14px); overflow-y: auto; padding-right: 4px; }
+/* Weather info sidebar */
+.globe-weather-boxes {
+    width: clamp(180px, 24vw, 320px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vw, 14px);
+    overflow-y: auto;
+    padding-right: 2px;
+    flex-shrink: 0;
+}
 .globe-weather-boxes::-webkit-scrollbar { display: none; }
 
 .globe-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border: 2px dashed rgba(0,198,255,0.3); border-radius: 15px; }
 
-.globe-weather-box { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border-radius: 15px; padding: clamp(12px, 1.4vw, 20px); display: flex; align-items: center; gap: clamp(10px, 1.2vw, 17px); border: 2px solid rgba(0,198,255,0.3); transition: 0.3s ease; pointer-events: auto !important; }
-.globe-weather-box:hover { background: rgba(255,255,255,0.1); border-color: rgba(0,198,255,0.6); transform: translateX(-5px); }
+.globe-weather-box {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    border-radius: 15px;
+    padding: clamp(10px, 1.4vw, 20px);
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.2vw, 17px);
+    border: 2px solid rgba(0,198,255,0.3);
+    transition: 0.3s ease;
+    pointer-events: auto !important;
+}
+.globe-weather-box:hover { background: rgba(255,255,255,0.1); border-color: rgba(0,198,255,0.6); transform: translateX(-4px); }
 
-.globe-box-icon    { font-size: clamp(24px, 2.8vw, 40px); color: #00c6ff; flex-shrink: 0; }
-.globe-box-label   { font-size: clamp(9px, 0.85vw, 13px); color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.globe-box-value   { font-size: clamp(18px, 2.2vw, 28px); font-weight: 700; color: white; margin-bottom: 4px; }
-.globe-box-detail  { font-size: clamp(10px, 0.9vw, 13px); color: rgba(255,255,255,0.7); }
+.globe-box-icon    { font-size: clamp(20px, 2.8vw, 40px); color: #00c6ff; flex-shrink: 0; }
+.globe-box-label   { font-size: clamp(8px, 0.85vw, 13px); color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.globe-box-value   { font-size: clamp(16px, 2.2vw, 28px); font-weight: 700; color: white; margin-bottom: 4px; }
+.globe-box-detail  { font-size: clamp(9px, 0.9vw, 13px); color: rgba(255,255,255,0.7); }
 
 .globe-loading { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-.globe-spinner { width: clamp(34px, 3.5vw, 48px); height: clamp(34px, 3.5vw, 48px); border: 4px solid rgba(0,198,255,0.2); border-top-color: #00c6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.globe-spinner { width: clamp(30px, 3.5vw, 48px); height: clamp(30px, 3.5vw, 48px); border: 4px solid rgba(0,198,255,0.2); border-top-color: #00c6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
+
+/* Tablets / small laptops */
 @media (max-width: 1024px) {
-    .top-header h1        { font-size: clamp(16px, 2.2vw, 26px); }
-    .globe-content        { flex-direction: column; }
-    .globe-weather-boxes  { width: 100%; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
-    .globe-weather-box    { min-width: 200px; }
-    .globe-empty-state    { min-width: 200px; }
+    .top-header h1 { font-size: clamp(16px, 2.2vw, 26px); }
 }
 
+/* ── GLOBE MOBILE: portrait phones ── */
+@media (max-width: 768px) {
+    .globe-content {
+        flex-direction: column;       /* stack globe above weather boxes */
+        padding: 8px;
+        gap: 8px;
+        /* Full height minus the header bar */
+        height: calc(100vh - 54px);
+        overflow-y: auto;
+    }
+
+    .globe-container {
+        /* Globe canvas takes most of the screen */
+        flex: 0 0 55vh;
+        height: 55vh;
+        width: 100%;
+        min-height: 260px;
+    }
+
+    .globe-weather-boxes {
+        /* Horizontal scrolling row of cards */
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-shrink: 0;
+        padding-bottom: 4px;
+        gap: 8px;
+    }
+
+    .globe-weather-box {
+        min-width: 160px;
+        flex-shrink: 0;
+    }
+
+    .globe-empty-state {
+        min-width: 180px;
+    }
+
+    /* Smaller overlay info panel so it doesn't block the globe */
+    .globe-info-overlay {
+        padding: 8px 10px;
+        gap: 6px;
+        min-width: unset;
+        max-width: 55vw;
+    }
+
+    /* Tuck instructions text to a smaller font */
+    .globe-instructions {
+        font-size: 10px;
+        padding: 5px 10px;
+        white-space: normal;
+        text-align: center;
+        width: 80%;
+    }
+}
+
+/* Very small phones */
+@media (max-width: 400px) {
+    .globe-container {
+        flex: 0 0 45vh;
+        height: 45vh;
+    }
+}
+
+/* ── MAIN CONTENT MOBILE ── */
 @media (max-width: 900px) {
     .content-row {
         flex-direction: column;
@@ -1121,15 +1481,196 @@ html, body {
     .sun-moon-panel {
         width: 100%;
     }
-    /* on narrow screens, banner fills the column */
     #archGreeting {
         width: 100%;
     }
 }
 
+/* ── CHATBOX MOBILE ── */
 @media (max-width: 480px) {
+    /* Make the chat window fill the screen width */
+    .chat-container {
+        right: 0;
+        left: 0;
+        width: 100vw;
+        border-radius: 15px 15px 0 0;
+        bottom: 0;
+        /* Leave space for the toggle button above */
+        height: calc(100vh - 70px);
+        max-height: 100vh;
+    }
+
+    /* Ensure input row uses full width and button stays visible */
+    .chat-input-container {
+        padding: 10px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom)); /* iPhone home bar */
+    }
+
     .calendar-grid {
         grid-template-columns: 1fr;
     }
+
     .search-bar { width: clamp(200px, 80vw, 340px); }
+}
+
+/* ============================================================
+   GLOBE WEATHER PANEL — collapsible, resizable
+   ============================================================ */
+
+/* Replace old .globe-weather-boxes with new panel structure */
+.globe-weather-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 280px;
+    min-width: 160px;
+    max-width: 420px;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(18px);
+    border-radius: 16px;
+    border: 1px solid rgba(0,198,255,0.25);
+    overflow: hidden;
+    transition: width 0.05s ease;
+}
+
+/* ── Resize handle on left edge ── */
+.globe-panel-resize-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+.globe-panel-resize-handle:hover,
+.globe-panel-resize-handle.dragging {
+    background: rgba(0,198,255,0.15);
+}
+.resize-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: none;
+}
+.resize-dots span {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(0,198,255,0.5);
+}
+.globe-panel-resize-handle:hover .resize-dots span,
+.globe-panel-resize-handle.dragging .resize-dots span {
+    background: #00c6ff;
+}
+
+/* ── Panel header ── */
+.globe-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 8px 16px;
+    border-bottom: 1px solid rgba(0,198,255,0.2);
+    flex-shrink: 0;
+    gap: 8px;
+}
+.globe-panel-title {
+    font-size: clamp(12px, 1.1vw, 15px);
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+.globe-panel-controls {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+
+/* ── Cards scroll area ── */
+.globe-weather-boxes {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vw, 12px);
+}
+.globe-weather-boxes::-webkit-scrollbar { width: 4px; }
+.globe-weather-boxes::-webkit-scrollbar-track { background: transparent; }
+.globe-weather-boxes::-webkit-scrollbar-thumb { background: rgba(0,198,255,0.3); border-radius: 4px; }
+
+/* UV box accent */
+.globe-uv-box { border-color: rgba(255,193,7,0.4); }
+.globe-uv-box .globe-box-icon { color: #facc15; }
+
+/* ── Panel toggle button (on globe edge) ── */
+.globe-panel-toggle-btn {
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 48px;
+    background: rgba(0,198,255,0.18);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(0,198,255,0.4);
+    border-radius: 10px 0 0 10px;
+    color: #00c6ff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    transition: background 0.2s ease;
+    pointer-events: auto !important;
+}
+.globe-panel-toggle-btn:hover {
+    background: rgba(0,198,255,0.35);
+}
+.globe-panel-toggle-btn .material-symbols-outlined {
+    font-size: 18px;
+    pointer-events: none;
+}
+
+/* ── Mobile: panel becomes a horizontal row at bottom ── */
+@media (max-width: 768px) {
+    .globe-weather-panel {
+        width: 100% !important;
+        min-width: unset;
+        max-width: unset;
+        flex-direction: row;
+        height: auto;
+        border-radius: 12px;
+        flex-shrink: 0;
+    }
+    .globe-panel-resize-handle { display: none; }
+    .globe-panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px 10px;
+        border-bottom: none;
+        border-right: 1px solid rgba(0,198,255,0.2);
+        flex-shrink: 0;
+        width: auto;
+    }
+    .globe-panel-controls { flex-wrap: wrap; gap: 4px; }
+    .globe-weather-boxes {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 8px 8px;
+        align-items: stretch;
+    }
+    .globe-weather-box { min-width: 150px; flex-shrink: 0; }
+    .globe-panel-toggle-btn { display: none; }
 }

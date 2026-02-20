@@ -7,62 +7,38 @@ const bgVideo   = document.getElementById("bgVideo");
 
 const apiKey = "2e3d2d2d9957fd5364e42c6cf4fe73e5";
 
-// ============================================================
-// FIX 1 — DOUBLE DROPDOWN
-// The browser's native autocomplete is already disabled via
-// autocomplete="off" on the <input> in index.html.
-// This JS line is an extra safety net for browsers (e.g. Chrome)
-// that ignore autocomplete="off" on certain input types.
-// Setting it to "new-password" is a well-known workaround that
-// reliably suppresses the browser's own suggestion dropdown.
-// ============================================================
 cityInput.setAttribute('autocomplete', 'new-password');
-
-// ============================================================
-// FIX 2 — MOBILE VIDEO
-// Programmatically set all required mobile video attributes on
-// the bgVideo element. Even though these are also in the HTML,
-// some older Android WebViews and iOS browsers need them set
-// via JS at runtime to honour them for dynamically-swapped src.
-// ============================================================
 bgVideo.setAttribute('playsinline', '');
 bgVideo.setAttribute('webkit-playsinline', '');
-bgVideo.muted = true;   // Must be set via JS property (not just attribute) for some browsers
+bgVideo.muted = true;
 
 // ============================================================
-// UNIT TOGGLE (°C / °F)
+// UNIT TOGGLE
 // ============================================================
-
 let currentUnit = 'C';
 
 function setUnit(unit) {
     currentUnit = unit;
     document.getElementById('btnCelsius').classList.toggle('active', unit === 'C');
     document.getElementById('btnFahrenheit').classList.toggle('active', unit === 'F');
-    if (window.currentWeatherData) {
-        displayWeatherData(window.currentWeatherData);
-    }
+    if (window.currentWeatherData) displayWeatherData(window.currentWeatherData);
     if (window.currentForecastData) {
         const d = window.currentWeatherData;
         if (d) displayForecastCalendar(window.currentForecastData, d.timezone, d.sys.sunrise, d.sys.sunset);
     }
-    if (window.selectedDayData) {
-        renderArchFromForecastDay(window.selectedDayData);
-    }
+    if (window.selectedDayData) renderArchFromForecastDay(window.selectedDayData);
 }
 
 function toDisplayTemp(celsius) {
-    if (currentUnit === 'F') return Math.round(celsius * 9/5 + 32);
-    return Math.round(celsius);
+    return currentUnit === 'F' ? Math.round(celsius * 9/5 + 32) : Math.round(celsius);
 }
 function tempLabel(celsius) {
     return `${toDisplayTemp(celsius)}°${currentUnit}`;
 }
 
-// ============================================
+// ============================================================
 // SEARCH HISTORY
-// ============================================
-
+// ============================================================
 const MAX_HISTORY = 8;
 
 function getSearchHistory() {
@@ -138,30 +114,46 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ============================================
-// BACKGROUND VIDEO
-// ============================================
+// ============================================================
+// ACCURATE UV INDEX — Open-Meteo (free, no key needed)
+// ============================================================
+async function fetchRealUVIndex(lat, lon) {
+    try {
+        const res = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=uv_index&forecast_days=1`
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        return Math.round(data.current?.uv_index ?? 0);
+    } catch {
+        return null;
+    }
+}
 
-/**
- * HEAVY RAIN DETECTION — Why the API doesn't have a "heavy rain" icon code:
- *
- * OpenWeatherMap icon codes only go up to:
- *   09d/09n = shower rain
- *   10d/10n = rain (light to moderate)
- *   11d/11n = thunderstorm
- *
- * There is NO separate "heavy rain" icon code in OWM.
- * To detect heavy rain we read data.rain['1h'] (mm per hour):
- *   < 2.5 mm/h  = light rain   → light_rain.mp4
- *   2.5–7.6     = moderate     → light_rain.mp4
- *   > 7.6 mm/h  = heavy rain   → heavy_rain.mp4
- *
- * rainMmPerHour is passed in from displayWeatherData() after extracting
- * it from the API response's optional `rain` object.
- */
+// ============================================================
+// ACCURATE AIR QUALITY — Open-Meteo Air Quality API
+// ============================================================
+async function fetchAirQuality(lat, lon) {
+    try {
+        const res = await fetch(
+            `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5`
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        return {
+            aqi: data.current?.us_aqi ?? null,
+            pm25: data.current?.pm2_5 ?? null
+        };
+    } catch {
+        return null;
+    }
+}
+
+// ============================================================
+// BACKGROUND VIDEO
+// ============================================================
 function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     let videoFile = "sunny.mp4";
-
     if      (iconCode === '01d')                                        videoFile = "sunny.mp4";
     else if (iconCode === '01n')                                        videoFile = "night.mp4";
     else if (['02d','02n','03d','03n','04d','04n'].includes(iconCode))  videoFile = "cloudy.mp4";
@@ -173,42 +165,26 @@ function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     else if (['50d','50n'].includes(iconCode))                          videoFile = "mist.mp4";
 
     const newSrc = `weather/${videoFile}`;
-
-    // Only reload if the source actually changed
     if (bgVideo.getAttribute('src') === newSrc) return;
-
     bgVideo.setAttribute('src', newSrc);
-
-    // ── FIX 2 (continued) — RE-ASSERT MOBILE ATTRIBUTES BEFORE EACH PLAY ──
-    // When src changes and load() is called, some mobile browsers (especially
-    // older Android WebView) reset the element's internal state and lose the
-    // muted / playsinline flags. Re-setting them here before every play()
-    // ensures the night video (and any other video swap) works on mobile.
     bgVideo.muted = true;
     bgVideo.setAttribute('playsinline', '');
     bgVideo.setAttribute('webkit-playsinline', '');
-
     bgVideo.load();
-
     const playPromise = bgVideo.play();
     if (playPromise !== undefined) {
-        playPromise
-            .then(() => {
-                // Autoplay started successfully
-            })
-            .catch(err => {
-                // Autoplay blocked — retry on first user interaction
-                console.warn('Autoplay blocked:', err.message);
-                const retryPlay = () => {
-                    bgVideo.play().catch(() => {});
-                    document.removeEventListener('click',      retryPlay);
-                    document.removeEventListener('keydown',    retryPlay);
-                    document.removeEventListener('touchstart', retryPlay);
-                };
-                document.addEventListener('click',      retryPlay, { once: true });
-                document.addEventListener('keydown',    retryPlay, { once: true });
-                document.addEventListener('touchstart', retryPlay, { once: true });
-            });
+        playPromise.catch(err => {
+            console.warn('Autoplay blocked:', err.message);
+            const retryPlay = () => {
+                bgVideo.play().catch(() => {});
+                document.removeEventListener('click',      retryPlay);
+                document.removeEventListener('keydown',    retryPlay);
+                document.removeEventListener('touchstart', retryPlay);
+            };
+            document.addEventListener('click',      retryPlay, { once: true });
+            document.addEventListener('keydown',    retryPlay, { once: true });
+            document.addEventListener('touchstart', retryPlay, { once: true });
+        });
     }
 }
 
@@ -221,7 +197,6 @@ function getCorrectIconCode(iconCode, isDay) {
     const baseCode = iconCode.substring(0, 2);
     return baseCode + (isDay ? 'd' : 'n');
 }
-
 function extractRainMmPerHour(data) {
     if (!data.rain) return 0;
     if (data.rain['1h'] !== undefined) return data.rain['1h'];
@@ -252,21 +227,11 @@ function clearError() {
     errorMsg.textContent = "";
     errorMsg.classList.remove('show');
 }
-function calculateUVIndex(data) {
-    const isDay = isDayTime(data.timezone, data.sys.sunrise, data.sys.sunset);
-    if (!isDay) return 0;
-    const cloudCover = data.clouds?.all || 0;
-    if (cloudCover > 80) return Math.floor(Math.random() * 3) + 1;
-    if (cloudCover > 50) return Math.floor(Math.random() * 3) + 4;
-    if (cloudCover > 20) return Math.floor(Math.random() * 3) + 6;
-    return Math.floor(Math.random() * 3) + 8;
-}
 
-// ============================================
-// DISPLAY WEATHER DATA (current / live)
-// ============================================
-
-function displayWeatherData(data) {
+// ============================================================
+// DISPLAY WEATHER DATA (current / live) — with REAL UV
+// ============================================================
+async function displayWeatherData(data) {
     clearError();
     window.selectedDayData = null;
     document.getElementById("cityText").textContent = `${data.name}, ${data.sys.country}`;
@@ -278,7 +243,6 @@ function displayWeatherData(data) {
 
     const rainMmPerHour = extractRainMmPerHour(data);
     changeBackgroundVideo(correctIconCode, rainMmPerHour);
-
     updateArchColor(data.main.temp);
 
     const humidity = data.main.humidity;
@@ -287,7 +251,14 @@ function displayWeatherData(data) {
 
     document.getElementById("windBox").textContent = `${data.wind.speed} m/s`;
 
-    const uvIndex = calculateUVIndex(data);
+    // Real UV from Open-Meteo
+    const lat = data.coord.lat;
+    const lon = data.coord.lon;
+    let uvIndex = 0;
+    if (isDay) {
+        const realUV = await fetchRealUVIndex(lat, lon);
+        uvIndex = realUV !== null ? realUV : 0;
+    }
     document.getElementById("uvBox").textContent = uvIndex;
     updateUVStatus(uvIndex);
 
@@ -313,35 +284,33 @@ function displayWeatherData(data) {
     if (todayCard) todayCard.classList.add('selected-day');
 }
 
-// ============================================
-// RENDER ARCH FROM FORECAST DAY (click handler)
-// ============================================
-
+// ============================================================
+// RENDER ARCH FROM FORECAST DAY
+// ============================================================
 function renderArchFromForecastDay(dayData) {
     window.selectedDayData = dayData;
 
-    const avgTemp   = dayData.temps.reduce((a, b) => a + b, 0) / dayData.temps.length;
-    const maxTemp   = Math.max(...dayData.temps);
-    const minTemp   = Math.min(...dayData.temps);
-    const avgHum    = Math.round(dayData.humidity.reduce((a, b) => a + b, 0) / dayData.humidity.length);
-    const avgWind   = (dayData.windSpeed.reduce((a, b) => a + b, 0) / dayData.windSpeed.length).toFixed(1);
-    const avgPress  = Math.round(dayData.pressure.reduce((a, b) => a + b, 0) / dayData.pressure.length);
-    const avgFeels  = dayData.feelsLike.reduce((a, b) => a + b, 0) / dayData.feelsLike.length;
-    const maxVis    = dayData.visibility.length > 0 ? (Math.max(...dayData.visibility) / 1000).toFixed(1) : '--';
+    const avgTemp  = dayData.temps.reduce((a, b) => a + b, 0) / dayData.temps.length;
+    const maxTemp  = Math.max(...dayData.temps);
+    const minTemp  = Math.min(...dayData.temps);
+    const avgHum   = Math.round(dayData.humidity.reduce((a, b) => a + b, 0) / dayData.humidity.length);
+    const avgWind  = (dayData.windSpeed.reduce((a, b) => a + b, 0) / dayData.windSpeed.length).toFixed(1);
+    const avgPress = Math.round(dayData.pressure.reduce((a, b) => a + b, 0) / dayData.pressure.length);
+    const avgFeels = dayData.feelsLike.reduce((a, b) => a + b, 0) / dayData.feelsLike.length;
+    const maxVis   = dayData.visibility.length > 0 ? (Math.max(...dayData.visibility) / 1000).toFixed(1) : '--';
 
-    const avgCloud  = dayData.cloudCover.length > 0
+    // UV for forecast: use cloud cover from forecast data (best we can do for future days)
+    const avgCloud = dayData.cloudCover.length > 0
         ? Math.round(dayData.cloudCover.reduce((a, b) => a + b, 0) / dayData.cloudCover.length)
         : 30;
-    let uv = avgCloud > 80 ? 2 : avgCloud > 50 ? 5 : avgCloud > 20 ? 7 : 9;
+    let uv = avgCloud > 80 ? 1 : avgCloud > 50 ? 4 : avgCloud > 20 ? 6 : 8;
 
     const isDay = true;
     const correctIconCode = getCorrectIconCode(dayData.icon, isDay);
 
     document.getElementById("tempValue").textContent = `${tempLabel(maxTemp)} / ${tempLabel(minTemp)}`;
     createWeatherIcon(correctIconCode);
-
     changeBackgroundVideo(correctIconCode, 0);
-
     updateArchColor(avgTemp);
 
     const daysOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -358,17 +327,12 @@ function renderArchFromForecastDay(dayData) {
 
     document.getElementById("humidityBox").textContent = `${avgHum}%`;
     updateHumidityStatus(avgHum);
-
     document.getElementById("windBox").textContent = `${avgWind} m/s`;
-
     document.getElementById("uvBox").textContent = uv;
     updateUVStatus(uv);
-
     document.getElementById("visibilityBox").textContent = `${maxVis} km`;
-
     document.getElementById("pressureBox").textContent = `${avgPress} hPa`;
     updatePressureStatus(avgPress);
-
     document.getElementById("feelsLikeBox").textContent = tempLabel(avgFeels);
     updateFeelsLikeStatus(avgFeels, avgTemp);
 
@@ -402,11 +366,11 @@ function updateHumidityStatus(humidity) {
 function updateUVStatus(uvIndex) {
     const statusEl = document.getElementById("uvStatus");
     statusEl.className = "condition-status";
-    if      (uvIndex >= 0  && uvIndex <= 2)  { statusEl.textContent = "Low";       statusEl.classList.add("healthy");   }
-    else if (uvIndex >= 3  && uvIndex <= 5)  { statusEl.textContent = "Moderate";  statusEl.classList.add("moderate");  }
-    else if (uvIndex >= 6  && uvIndex <= 7)  { statusEl.textContent = "High";      statusEl.classList.add("moderate");  }
-    else if (uvIndex >= 8  && uvIndex <= 10) { statusEl.textContent = "Very High"; statusEl.classList.add("unhealthy"); }
-    else                                     { statusEl.textContent = "Extreme";   statusEl.classList.add("unhealthy"); }
+    if      (uvIndex <= 2)  { statusEl.textContent = "Low";       statusEl.classList.add("healthy");   }
+    else if (uvIndex <= 5)  { statusEl.textContent = "Moderate";  statusEl.classList.add("moderate");  }
+    else if (uvIndex <= 7)  { statusEl.textContent = "High";      statusEl.classList.add("moderate");  }
+    else if (uvIndex <= 10) { statusEl.textContent = "Very High"; statusEl.classList.add("unhealthy"); }
+    else                    { statusEl.textContent = "Extreme";   statusEl.classList.add("unhealthy"); }
 }
 function updatePressureStatus(pressure) {
     const statusEl = document.getElementById("pressureStatus");
@@ -426,10 +390,9 @@ function updateFeelsLikeStatus(feelsLike, actualTemp) {
     else                           { statusEl.textContent = "Cooler";   statusEl.classList.add("moderate");  }
 }
 
-// ============================================
+// ============================================================
 // DATE / TIME
-// ============================================
-
+// ============================================================
 let clockInterval;
 
 function updateDateTimeByTimezone(data) {
@@ -459,10 +422,9 @@ function updateDateTimeByTimezone(data) {
     clockInterval = setInterval(updateClock, 1000);
 }
 
-// ============================================
-// SUN / MOON RISE-SET PANEL
-// ============================================
-
+// ============================================================
+// SUN / MOON PANEL
+// ============================================================
 function updateSunMoonPanel(data) {
     const timezone = data.timezone;
     const sunrise  = data.sys.sunrise;
@@ -482,7 +444,6 @@ function updateSunMoonPanel(data) {
     const totalDaylight = sunset - sunrise;
     const elapsed = Math.max(0, Math.min(cityNow - sunrise, totalDaylight));
     const progress = totalDaylight > 0 ? (elapsed / totalDaylight) * 100 : 0;
-
     const isDay = isDayTime(timezone, sunrise, sunset);
 
     const daylightMinutes = Math.round(totalDaylight / 60);
@@ -547,7 +508,6 @@ function updateSunMoonPanel(data) {
 function updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp) {
     const d = dayData.date;
     const dayStr = `${d.getUTCDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()]}`;
-
     const sunriseEl  = document.getElementById('sunriseTime');
     const sunsetEl   = document.getElementById('sunsetTime');
     const daylightEl = document.getElementById('daylightDuration');
@@ -555,11 +515,9 @@ function updateSunMoonPanelForecast(dayData, avgTemp, maxTemp, minTemp) {
     const moonIcon   = document.getElementById('moonPhaseIcon');
     const statusEl   = document.getElementById('sunStatusText');
     const dot        = document.getElementById('sunArcDot');
-
     if (sunriseEl)  sunriseEl.textContent  = '~6:00 AM';
     if (sunsetEl)   sunsetEl.textContent   = '~6:00 PM';
     if (daylightEl) daylightEl.textContent = '~12h 0m';
-
     const phase = getMoonPhase(d);
     if (moonEl)   moonEl.textContent   = phase.name;
     if (moonIcon) moonIcon.textContent = phase.emoji;
@@ -572,7 +530,6 @@ function getMoonPhase(date) {
     const diff = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
     const cycle = 29.53058867;
     const phase = ((diff % cycle) + cycle) % cycle;
-
     if      (phase < 1.84)  return { name: 'New Moon',        emoji: '🌑' };
     else if (phase < 5.53)  return { name: 'Waxing Crescent', emoji: '🌒' };
     else if (phase < 9.22)  return { name: 'First Quarter',   emoji: '🌓' };
@@ -584,10 +541,9 @@ function getMoonPhase(date) {
     else                    return { name: 'New Moon',        emoji: '🌑' };
 }
 
-// ============================================
+// ============================================================
 // 14-DAY FORECAST CALENDAR
-// ============================================
-
+// ============================================================
 function showCalendarShimmer() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
@@ -675,7 +631,6 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
         const avgHum   = Math.round(dayData.humidity.reduce((a, b) => a + b, 0) / dayData.humidity.length);
 
         const condition = dayData.weather.description.charAt(0).toUpperCase() + dayData.weather.description.slice(1);
-
         const dayName    = daysOfWeek[dayData.date.getUTCDay()];
         const dayNum     = dayData.date.getUTCDate();
         const monthShort = monthNames[dayData.date.getUTCMonth()];
@@ -720,10 +675,9 @@ function displayForecastCalendar(forecastData, timezone, sunrise, sunset) {
     });
 }
 
-// ============================================
-// FETCH WEATHER
-// ============================================
-
+// ============================================================
+// FETCH WEATHER — main entry point
+// ============================================================
 function fetchWeather(city, saveToHistory = true) {
     clearError();
     fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`)
@@ -760,16 +714,27 @@ window.addEventListener("DOMContentLoaded", () => {
     initGlobe();
 });
 
-
-// ============================================
+// ============================================================
 // GLOBE
-// ============================================
-
+// ============================================================
 let globe = null;
 let globeRotating = true;
 let rotationSpeed = 0.15;
 let rotationAnimFrame = null;
 let currentPOV = { lat: 0, lng: 0, altitude: 2.5 };
+
+// Globe panel state
+let globePanelVisible = true;
+let globePanelWidth = 280; // px, user-adjustable
+let globePanelMinWidth = 160;
+let globePanelMaxWidth = 420;
+let globeBoxVisibility = {
+    globeTempBox: true,
+    globeConditionBox: true,
+    globeWindBox: true,
+    globeHumidityBox: true,
+    globeVisBox: true
+};
 
 const worldCities = [
     { name: "Manila",        country: "PH", lat: 14.5995,  lng: 120.9842,  capital: true  },
@@ -830,49 +795,177 @@ const worldCities = [
     { name: "Reykjavik",     country: "IS", lat: 64.1355,  lng: -21.8954,  capital: true  },
 ];
 
+// ─── Globe panel toggle / hide-show / resize ───────────────────────────
+function toggleGlobePanel() {
+    globePanelVisible = !globePanelVisible;
+    const panel = document.getElementById('globeWeatherPanel');
+    const btn   = document.getElementById('globePanelToggleBtn');
+    if (globePanelVisible) {
+        panel.style.display = '';
+        btn.title = 'Hide weather panel';
+        btn.querySelector('.material-symbols-outlined').textContent = 'chevron_right';
+    } else {
+        panel.style.display = 'none';
+        btn.title = 'Show weather panel';
+        btn.querySelector('.material-symbols-outlined').textContent = 'chevron_left';
+    }
+    // Resize globe to fill new space
+    setTimeout(resizeGlobe, 50);
+}
+
+function toggleGlobeBox(id) {
+    globeBoxVisibility[id] = !globeBoxVisibility[id];
+    const box = document.getElementById(id);
+    const btn = document.querySelector(`.globe-box-toggle-btn[data-target="${id}"]`);
+    if (box) {
+        // Only hide if currently showing data (not during loading)
+        const isShowing = box.style.display !== 'none';
+        box.style.display = globeBoxVisibility[id] && isShowing ? 'flex' : 'none';
+    }
+    if (btn) {
+        btn.classList.toggle('active', globeBoxVisibility[id]);
+        btn.title = globeBoxVisibility[id] ? 'Hide this card' : 'Show this card';
+    }
+}
+
+function resizeGlobe() {
+    if (!globe) return;
+    const container = document.getElementById('globeViz');
+    if (container) {
+        globe.width(container.clientWidth);
+        globe.height(container.clientHeight);
+    }
+}
+
+// Panel resize drag
+function initPanelResize() {
+    const handle = document.getElementById('globePanelResizeHandle');
+    const panel  = document.getElementById('globeWeatherPanel');
+    if (!handle || !panel) return;
+
+    let startX, startW;
+
+    function onMouseMove(e) {
+        const dx = startX - e.clientX;
+        const newW = Math.min(globePanelMaxWidth, Math.max(globePanelMinWidth, startW + dx));
+        panel.style.width = newW + 'px';
+        globePanelWidth = newW;
+        resizeGlobe();
+    }
+    function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        handle.classList.remove('dragging');
+    }
+    handle.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        startW = panel.offsetWidth;
+        handle.classList.add('dragging');
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        e.preventDefault();
+    });
+
+    // Touch support
+    handle.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startW = panel.offsetWidth;
+        handle.classList.add('dragging');
+        e.preventDefault();
+    }, { passive: false });
+    handle.addEventListener('touchmove', (e) => {
+        const dx = startX - e.touches[0].clientX;
+        const newW = Math.min(globePanelMaxWidth, Math.max(globePanelMinWidth, startW + dx));
+        panel.style.width = newW + 'px';
+        globePanelWidth = newW;
+        resizeGlobe();
+        e.preventDefault();
+    }, { passive: false });
+    handle.addEventListener('touchend', () => handle.classList.remove('dragging'));
+}
+
+// ─── Globe weather fetch — now uses REAL UV from Open-Meteo ───────────
 async function fetchGlobeWeather(lat, lng, locationName) {
     document.getElementById('globeEmptyState').style.display = 'none';
     document.getElementById('globeLoading').style.display   = 'flex';
-    ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox'].forEach(id => {
-        document.getElementById(id).style.display = 'none';
-    });
+    const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox'];
+    boxIds.forEach(id => { document.getElementById(id).style.display = 'none'; });
+
     try {
-        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`);
+        const response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`
+        );
         if (!response.ok) throw new Error('Weather not found');
         const data = await response.json();
+
+        // Fetch real UV in parallel
+        const isDay = data.dt >= data.sys.sunrise && data.dt <= data.sys.sunset;
+        const uvPromise = isDay ? fetchRealUVIndex(lat, lng) : Promise.resolve(0);
+        const uvIndex = await uvPromise;
+
         const cityName = data.name || locationName || 'Unknown Location';
         document.getElementById('globeCity').textContent   = `${cityName}, ${data.sys.country}`;
         document.getElementById('globeCoords').textContent = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+
         document.getElementById('globeTempValue').textContent  = tempLabel(data.main.temp);
         document.getElementById('globeFeelsLike').textContent  = `Feels like ${tempLabel(data.main.feels_like)}`;
+
         const condDesc = data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
         document.getElementById('globeCondValue').textContent  = condDesc;
         document.getElementById('globeCondDetail').textContent = `Humidity: ${data.main.humidity}%`;
-        const iconMap = { '01': 'wb_sunny', '02': 'partly_cloudy_day', '03': 'cloud', '04': 'cloud', '09': 'rainy', '10': 'rainy', '11': 'thunderstorm', '13': 'ac_unit', '50': 'foggy' };
+
+        const iconMap = {
+            '01': 'wb_sunny', '02': 'partly_cloudy_day', '03': 'cloud',
+            '04': 'cloud', '09': 'rainy', '10': 'rainy',
+            '11': 'thunderstorm', '13': 'ac_unit', '50': 'foggy'
+        };
         const iconPrefix = data.weather[0].icon.substring(0, 2);
         document.getElementById('globeCondIcon').textContent = iconMap[iconPrefix] || 'wb_sunny';
+
         document.getElementById('globeWindValue').textContent = `${data.wind.speed} m/s`;
-        document.getElementById('globeWindDir').textContent   = `Direction: ${data.wind.deg || '--'}°`;
+        document.getElementById('globeWindDir').textContent   = `Direction: ${data.wind.deg ?? '--'}°`;
+
         document.getElementById('globeHumidValue').textContent = `${data.main.humidity}%`;
         document.getElementById('globePressure').textContent   = `Pressure: ${data.main.pressure} hPa`;
+
         const visKm = data.visibility ? (data.visibility / 1000).toFixed(1) : '--';
         document.getElementById('globeVisValue').textContent = `${visKm} km`;
+
         const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         const sunset  = new Date(data.sys.sunset  * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         document.getElementById('globeSunrise').textContent = `☀️ ${sunrise} — 🌙 ${sunset}`;
+
+        // UV row
+        document.getElementById('globeUVValue').textContent  = uvIndex !== null ? uvIndex : '--';
+        document.getElementById('globeUVDetail').textContent = getUVLabel(uvIndex);
+
         document.getElementById('globeLoading').style.display = 'none';
-        ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox'].forEach(id => {
-            document.getElementById(id).style.display = 'flex';
+
+        // Show only boxes that user has toggled on
+        boxIds.concat(['globeUVBox']).forEach(id => {
+            if (globeBoxVisibility[id] !== false) {
+                document.getElementById(id).style.display = 'flex';
+            }
         });
+
     } catch (e) {
         document.getElementById('globeLoading').style.display = 'none';
-        document.getElementById('globeEmptyState').style.display = 'block';
+        document.getElementById('globeEmptyState').style.display = 'flex';
         document.getElementById('globeEmptyState').innerHTML = `
-            <div style="font-size:48px;text-align:center;margin-bottom:15px">❌</div>
-            <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:14px">
+            <div style="font-size:40px;text-align:center;margin-bottom:12px">❌</div>
+            <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">
                 Could not fetch weather for this location. Try clicking a different area.
             </p>`;
     }
+}
+
+function getUVLabel(uv) {
+    if (uv === null || uv === undefined) return 'N/A';
+    if (uv <= 2)  return 'Low';
+    if (uv <= 5)  return 'Moderate';
+    if (uv <= 7)  return 'High';
+    if (uv <= 10) return 'Very High';
+    return 'Extreme';
 }
 
 function initGlobe() {
@@ -902,6 +995,7 @@ function initGlobe() {
     currentPOV = { lat: 14.5995, lng: 120.9842, altitude: 2.5 };
     startRotation();
     setupGlobeControls();
+    initPanelResize();
     document.addEventListener('keydown', handleGlobeKeyboard);
 }
 
@@ -958,6 +1052,7 @@ function setupGlobeControls() {
     document.getElementById('globeRotateDown').addEventListener('click',  () => nudgeGlobe(-5, 0));
     document.getElementById('globeRotateLeft').addEventListener('click',  () => nudgeGlobe(0, -10));
     document.getElementById('globeRotateRight').addEventListener('click', () => nudgeGlobe(0, 10));
+
     let holdInterval = null;
     const arrowActions = {
         globeRotateUp:    () => nudgeGlobe(3, 0),
@@ -1003,24 +1098,15 @@ function toggleGlobeView() {
     if (globeSection.style.display === 'none' || globeSection.style.display === '') {
         globeSection.style.display = 'block';
         if (!globe) { setTimeout(initGlobe, 100); }
-        else {
-            setTimeout(() => {
-                if (globe) {
-                    const container = document.getElementById('globeViz');
-                    globe.width(container.clientWidth);
-                    globe.height(container.clientHeight);
-                }
-            }, 100);
-        }
+        else { setTimeout(resizeGlobe, 100); }
     } else {
         globeSection.style.display = 'none';
     }
 }
 
-// ============================================
+// ============================================================
 // KILA CHATBOT
-// ============================================
-
+// ============================================================
 function toggleKila() {
     const chatContainer = document.getElementById('chatContainer');
     const toggleBtn     = document.getElementById('kilaToggle');
@@ -1216,7 +1302,7 @@ async function sendMessage() {
             else if (temp > 15) insight += `cool at ${tempLabel(temp)}! 🍃 `;
             else                insight += `chilly at ${tempLabel(temp)}! 🧥 `;
             if (Math.abs(feelsLike - temp) > 3) insight += `Feels like ${tempLabel(feelsLike)}. `;
-            if (condition.includes('rain'))  insight += `It's raining — grab an umbrella! ☔`;
+            if (condition.includes('rain'))       insight += `It's raining — grab an umbrella! ☔`;
             else if (condition.includes('cloud')) insight += `Cloudy skies! ⛅`;
             else if (condition.includes('clear')) insight += `Clear skies — perfect day! ☀️`;
             if (humidity > 70) insight += ` Humidity is ${humidity}%, might feel muggy! 💦`;
