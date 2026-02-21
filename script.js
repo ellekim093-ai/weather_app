@@ -1,4 +1,4 @@
-// WEATHER PLATFORM — network error handling + Enhanced Globe
+// WEATHER PLATFORM — Enhanced Globe (All Devices) + Loading States
 
 const cityInput = document.getElementById("cityInput");
 const errorMsg  = document.getElementById("errorMsg");
@@ -12,7 +12,61 @@ bgVideo.setAttribute('playsinline', '');
 bgVideo.setAttribute('webkit-playsinline', '');
 bgVideo.muted = true;
 
-// ─── NETWORK ERROR TYPES ──────────────────────────────────
+// ─── GLOBAL LOADING MANAGER ──────────────────────────────
+const LoadingManager = {
+    activeLoaders: new Set(),
+
+    show(id, targetEl, options = {}) {
+        const { overlay = false, text = 'Loading...', size = 'md', color = '#00c6ff' } = options;
+        this.activeLoaders.add(id);
+
+        if (overlay) {
+            // Full overlay loader
+            const existing = document.getElementById(`loader-overlay-${id}`);
+            if (existing) return;
+            const el = document.createElement('div');
+            el.id = `loader-overlay-${id}`;
+            el.className = 'lm-overlay';
+            el.innerHTML = `
+                <div class="lm-overlay-inner">
+                    <div class="lm-spinner lm-spinner-${size}" style="--lm-color:${color}"></div>
+                    <p class="lm-overlay-text">${text}</p>
+                </div>`;
+            (targetEl || document.body).appendChild(el);
+            requestAnimationFrame(() => el.classList.add('lm-visible'));
+        } else if (targetEl) {
+            // Inline loader in element
+            targetEl.setAttribute('data-loading', 'true');
+            const skel = document.createElement('div');
+            skel.className = `lm-inline lm-inline-${size}`;
+            skel.id = `loader-inline-${id}`;
+            skel.innerHTML = `
+                <div class="lm-spinner" style="--lm-color:${color}"></div>
+                <span class="lm-inline-text">${text}</span>`;
+            targetEl.appendChild(skel);
+        }
+    },
+
+    hide(id) {
+        this.activeLoaders.delete(id);
+        // Remove overlay
+        const overlay = document.getElementById(`loader-overlay-${id}`);
+        if (overlay) {
+            overlay.classList.remove('lm-visible');
+            setTimeout(() => overlay.remove(), 300);
+        }
+        // Remove inline
+        const inline = document.getElementById(`loader-inline-${id}`);
+        if (inline) {
+            inline.classList.add('lm-fade-out');
+            setTimeout(() => { inline.remove(); }, 250);
+        }
+    },
+
+    isLoading(id) { return this.activeLoaders.has(id); }
+};
+
+// ─── NETWORK ERROR TYPES ─────────────────────────────────
 const NetworkErrors = {
     OFFLINE:       'You appear to be offline. Please check your internet connection.',
     TIMEOUT:       'Request timed out. The server is taking too long to respond.',
@@ -22,7 +76,6 @@ const NetworkErrors = {
     UNKNOWN:       'Something went wrong. Please try again.',
 };
 
-// ─── FETCH WITH RETRY ─────────────────────────────────────
 async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs = 8000) {
     for (let attempt = 1; attempt <= retries; attempt++) {
         if (!navigator.onLine) throw { type: 'OFFLINE', message: NetworkErrors.OFFLINE };
@@ -58,7 +111,7 @@ function clearError()       { errorMsg.textContent = ""; errorMsg.classList.remo
 window.addEventListener('offline', () => showError(NetworkErrors.OFFLINE));
 window.addEventListener('online',  () => { clearError(); showError('✅ Back online!'); setTimeout(clearError, 2000); });
 
-// ─── UNIT TOGGLE ──────────────────────────────────────────
+// ─── UNIT TOGGLE ─────────────────────────────────────────
 let currentUnit = 'C';
 function setUnit(unit) {
     currentUnit = unit;
@@ -74,7 +127,7 @@ function setUnit(unit) {
 function toDisplayTemp(celsius) { return currentUnit === 'F' ? Math.round(celsius * 9/5 + 32) : Math.round(celsius); }
 function tempLabel(celsius)     { return `${toDisplayTemp(celsius)}°${currentUnit}`; }
 
-// ─── DEBOUNCE ─────────────────────────────────────────────
+// ─── DEBOUNCE ────────────────────────────────────────────
 let searchDebounceTimer = null;
 function debounce(fn, delay = 500) {
     return function (...args) {
@@ -83,7 +136,7 @@ function debounce(fn, delay = 500) {
     };
 }
 
-// ─── RATE LIMITER ─────────────────────────────────────────
+// ─── RATE LIMITER ────────────────────────────────────────
 const rateLimiter = {
     requests: [], maxRequests: 10, windowMs: 60 * 1000,
     canMakeRequest() {
@@ -94,7 +147,7 @@ const rateLimiter = {
     recordRequest() { this.requests.push(Date.now()); }
 };
 
-// ─── SEARCH HISTORY ───────────────────────────────────────
+// ─── SEARCH HISTORY ──────────────────────────────────────
 const MAX_HISTORY = 8;
 function getSearchHistory() {
     try { const raw = JSON.parse(localStorage.getItem('weatherSearchHistory') || '[]'); return raw.filter(h => typeof h === 'string' && h.trim().length > 0); }
@@ -161,12 +214,11 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-container')) document.getElementById('searchHistoryDropdown').style.display = 'none';
 });
 
-// ─── SANITIZE ─────────────────────────────────────────────
 function sanitizeCityInput(input) {
     return input.trim().replace(/[<>{}[\]\\^`|]/g, '').replace(/\s+/g, ' ').substring(0, 100);
 }
 
-// ─── UV INDEX (Open-Meteo) ────────────────────────────────
+// ─── UV INDEX ────────────────────────────────────────────
 async function fetchRealUVIndex(lat, lon) {
     try {
         const data = await fetchWithRetry(
@@ -177,7 +229,6 @@ async function fetchRealUVIndex(lat, lon) {
     } catch { return 0; }
 }
 
-// ─── ASTRONOMICAL DATA ────────────────────────────────────
 async function fetchAstronomicalData(lat, lon, days = 14) {
     try {
         return await fetchWithRetry(
@@ -187,7 +238,6 @@ async function fetchAstronomicalData(lat, lon, days = 14) {
     } catch { return null; }
 }
 
-// ─── 14-DAY FORECAST ─────────────────────────────────────
 async function fetchOpenMeteoForecast(lat, lon) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
         `&daily=weathercode,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,` +
@@ -197,7 +247,6 @@ async function fetchOpenMeteoForecast(lat, lon) {
     return await fetchWithRetry(url, {}, 2, 8000);
 }
 
-// ─── WMO WEATHER CODE MAP ─────────────────────────────────
 function wmoToWeather(code) {
     const map = {
         0:{'desc':'Clear sky','icon':'01d'},1:{'desc':'Mainly clear','icon':'01d'},2:{'desc':'Partly cloudy','icon':'02d'},
@@ -212,7 +261,6 @@ function wmoToWeather(code) {
     return map[code] || { desc: 'Unknown', icon: '02d' };
 }
 
-// ─── BACKGROUND VIDEO ─────────────────────────────────────
 function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     let videoFile = "sunny.mp4";
     if      (iconCode === '01d')                                        videoFile = "sunny.mp4";
@@ -267,7 +315,7 @@ function createWeatherIcon(iconCode) {
     weatherIconContainer.appendChild(iconDiv);
 }
 
-// ─── DISPLAY WEATHER DATA ─────────────────────────────────
+// ─── MAIN WEATHER DISPLAY ────────────────────────────────
 async function displayWeatherData(data) {
     clearError();
     window.selectedDayData = null;
@@ -304,7 +352,6 @@ async function displayWeatherData(data) {
     if (todayCard) todayCard.classList.add('selected-day');
 }
 
-// ─── RENDER ARCH FROM FORECAST DAY ───────────────────────
 function renderArchFromForecastDay(dayData) {
     window.selectedDayData = dayData;
     const maxTemp = dayData.maxTemp, minTemp = dayData.minTemp, avgTemp = (maxTemp + minTemp) / 2;
@@ -375,7 +422,6 @@ function updateFeelsLikeStatus(feelsLike, actualTemp) {
     else { s.textContent="Cooler"; s.classList.add("moderate"); }
 }
 
-// ─── DATE/TIME ────────────────────────────────────────────
 let clockInterval;
 function updateDateTimeByTimezone(data) {
     const dateTimeEl = document.getElementById("currentDateTime");
@@ -394,7 +440,6 @@ function updateDateTimeByTimezone(data) {
     clockInterval = setInterval(updateClock, 1000);
 }
 
-// ─── SUN/MOON PANEL ───────────────────────────────────────
 let cachedAstroData = null, cachedAstroLatLon = null;
 async function updateSunMoonPanel(data) {
     const lat = data.coord.lat, lon = data.coord.lon, timezone = data.timezone;
@@ -498,7 +543,6 @@ function getMoonPhase(date) {
     return {name:'New Moon',emoji:'🌑'};
 }
 
-// ─── FORECAST CALENDAR ───────────────────────────────────
 function showCalendarShimmer() {
     const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
     for (let i=0;i<14;i++) { const s=document.createElement('div'); s.className='cal-shimmer'; grid.appendChild(s); }
@@ -565,13 +609,17 @@ function displayForecastCalendar(forecastData, lat, lon) {
     }
 }
 
-// ─── MAIN FETCH WEATHER ──────────────────────────────────
+// ─── MAIN FETCH WITH LOADING STATE ───────────────────────
 async function fetchWeather(city, saveToHistory = true) {
     clearError();
     if (!rateLimiter.canMakeRequest()) { showError(NetworkErrors.RATE_LIMIT); return; }
     const sanitizedCity = sanitizeCityInput(city);
     if (!sanitizedCity) { showError('Please enter a valid city name.'); return; }
     if (!navigator.onLine) { showError(NetworkErrors.OFFLINE); return; }
+
+    // Show search loading bar
+    showSearchLoading(true);
+
     try {
         rateLimiter.recordRequest();
         const data = await fetchWithRetry(
@@ -584,7 +632,20 @@ async function fetchWeather(city, saveToHistory = true) {
     } catch (err) {
         showError(err.message || NetworkErrors.UNKNOWN);
         console.error('Weather fetch error:', err);
+    } finally {
+        showSearchLoading(false);
     }
+}
+
+function showSearchLoading(show) {
+    let bar = document.getElementById('searchLoadingBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'searchLoadingBar';
+        bar.className = 'search-loading-bar';
+        document.querySelector('.search-inner').appendChild(bar);
+    }
+    bar.classList.toggle('active', show);
 }
 
 function handleSearch() {
@@ -595,7 +656,6 @@ function handleSearch() {
 }
 cityInput.addEventListener("keydown", e => { if (e.key==="Enter") { clearTimeout(searchDebounceTimer); handleSearch(); } });
 
-// ─── INIT ─────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
     try {
         let history = JSON.parse(localStorage.getItem('weatherSearchHistory')||'[]');
@@ -605,8 +665,9 @@ window.addEventListener("DOMContentLoaded", () => {
     fetchWeather("Manila", false);
 });
 
+
 // ============================================================
-// GLOBE — 150+ cities, search bar, red pin, temp-colored dots
+// GLOBE — Full cross-device support + Enhanced Loading States
 // ============================================================
 
 let globe = null;
@@ -616,12 +677,19 @@ let rotationAnimFrame = null;
 let currentPOV = { lat: 0, lng: 0, altitude: 2.5 };
 let globeOpen  = false;
 let globePanelVisible = true;
-let globePanelMinWidth = 160, globePanelMaxWidth = 420;
+let globePanelMinWidth = 150, globePanelMaxWidth = 400;
 
-// ─── TEMPERATURE DOT COLOR ────────────────────────────────
-// Returns a color based on city latitude (climate zone approximation)
-// When live temp data is loaded, dots get updated
-let cityTempCache = {}; // { "CityName,Country": tempC }
+// Touch/gesture state
+let globeTouchState = {
+    active: false,
+    lastX: 0, lastY: 0,
+    lastDist: 0,
+    isPinch: false,
+    startTime: 0
+};
+
+// ─── TEMPERATURE DOT COLOR ───────────────────────────────
+let cityTempCache = {};
 
 function getTempColor(tempC) {
     if (tempC === undefined || tempC === null) return 'rgba(200, 230, 255, 0.7)';
@@ -637,7 +705,6 @@ function getTempColor(tempC) {
     return '#cc88ff';
 }
 
-// Estimate temperature from latitude (rough climate model, used before live data)
 function estimateTempFromLatitude(lat) {
     const absLat = Math.abs(lat);
     if (absLat < 10)  return 30;
@@ -650,223 +717,105 @@ function estimateTempFromLatitude(lat) {
     return -20;
 }
 
-// ─── EXPANDED WORLD CITIES (150+) ────────────────────────
 const worldCities = [
-    // Philippines
     { name:"Manila",         country:"PH", lat:14.5995,  lng:120.9842, capital:true  },
     { name:"Cebu",           country:"PH", lat:10.3157,  lng:123.8854, capital:false },
     { name:"Davao",          country:"PH", lat:7.0707,   lng:125.6087, capital:false },
     { name:"Quezon City",    country:"PH", lat:14.6760,  lng:121.0437, capital:false },
-    // East Asia
     { name:"Tokyo",          country:"JP", lat:35.6762,  lng:139.6503, capital:true  },
     { name:"Osaka",          country:"JP", lat:34.6937,  lng:135.5023, capital:false },
-    { name:"Kyoto",          country:"JP", lat:35.0116,  lng:135.7681, capital:false },
-    { name:"Sapporo",        country:"JP", lat:43.0642,  lng:141.3469, capital:false },
     { name:"Seoul",          country:"KR", lat:37.5665,  lng:126.9780, capital:true  },
-    { name:"Busan",          country:"KR", lat:35.1796,  lng:129.0756, capital:false },
     { name:"Beijing",        country:"CN", lat:39.9042,  lng:116.4074, capital:true  },
     { name:"Shanghai",       country:"CN", lat:31.2304,  lng:121.4737, capital:false },
-    { name:"Guangzhou",      country:"CN", lat:23.1291,  lng:113.2644, capital:false },
-    { name:"Shenzhen",       country:"CN", lat:22.5431,  lng:114.0579, capital:false },
-    { name:"Chengdu",        country:"CN", lat:30.5728,  lng:104.0668, capital:false },
     { name:"Hong Kong",      country:"HK", lat:22.3193,  lng:114.1694, capital:false },
     { name:"Taipei",         country:"TW", lat:25.0330,  lng:121.5654, capital:true  },
-    { name:"Ulaanbaatar",    country:"MN", lat:47.8864,  lng:106.9057, capital:true  },
-    // Southeast Asia
     { name:"Singapore",      country:"SG", lat:1.3521,   lng:103.8198, capital:true  },
     { name:"Bangkok",        country:"TH", lat:13.7563,  lng:100.5018, capital:true  },
-    { name:"Chiang Mai",     country:"TH", lat:18.7883,  lng:98.9853,  capital:false },
     { name:"Jakarta",        country:"ID", lat:-6.2088,  lng:106.8456, capital:true  },
-    { name:"Bali",           country:"ID", lat:-8.3405,  lng:115.0920, capital:false },
     { name:"Kuala Lumpur",   country:"MY", lat:3.1390,   lng:101.6869, capital:true  },
     { name:"Hanoi",          country:"VN", lat:21.0285,  lng:105.8542, capital:true  },
     { name:"Ho Chi Minh",    country:"VN", lat:10.8231,  lng:106.6297, capital:false },
-    { name:"Phnom Penh",     country:"KH", lat:11.5564,  lng:104.9282, capital:true  },
-    { name:"Yangon",         country:"MM", lat:16.8661,  lng:96.1951,  capital:false },
-    { name:"Vientiane",      country:"LA", lat:17.9757,  lng:102.6331, capital:true  },
-    { name:"Bandar Seri Beg",country:"BN", lat:4.9031,   lng:114.9398, capital:true  },
-    // South Asia
     { name:"Dhaka",          country:"BD", lat:23.8103,  lng:90.4125,  capital:true  },
-    { name:"Colombo",        country:"LK", lat:6.9271,   lng:79.8612,  capital:true  },
     { name:"New Delhi",      country:"IN", lat:28.6139,  lng:77.2090,  capital:true  },
     { name:"Mumbai",         country:"IN", lat:19.0760,  lng:72.8777,  capital:false },
     { name:"Bangalore",      country:"IN", lat:12.9716,  lng:77.5946,  capital:false },
-    { name:"Chennai",        country:"IN", lat:13.0827,  lng:80.2707,  capital:false },
-    { name:"Kolkata",        country:"IN", lat:22.5726,  lng:88.3639,  capital:false },
-    { name:"Hyderabad",      country:"IN", lat:17.3850,  lng:78.4867,  capital:false },
     { name:"Karachi",        country:"PK", lat:24.8607,  lng:67.0011,  capital:false },
     { name:"Islamabad",      country:"PK", lat:33.6844,  lng:73.0479,  capital:true  },
-    { name:"Kathmandu",      country:"NP", lat:27.7172,  lng:85.3240,  capital:true  },
-    { name:"Kabul",          country:"AF", lat:34.5553,  lng:69.2075,  capital:true  },
-    // Central/West Asia
     { name:"Tehran",         country:"IR", lat:35.6892,  lng:51.3890,  capital:true  },
     { name:"Baghdad",        country:"IQ", lat:33.3152,  lng:44.3661,  capital:true  },
     { name:"Riyadh",         country:"SA", lat:24.7136,  lng:46.6753,  capital:true  },
-    { name:"Jeddah",         country:"SA", lat:21.4858,  lng:39.1925,  capital:false },
     { name:"Dubai",          country:"AE", lat:25.2048,  lng:55.2708,  capital:false },
-    { name:"Abu Dhabi",      country:"AE", lat:24.4539,  lng:54.3773,  capital:true  },
     { name:"Doha",           country:"QA", lat:25.2854,  lng:51.5310,  capital:true  },
-    { name:"Kuwait City",    country:"KW", lat:29.3759,  lng:47.9774,  capital:true  },
-    { name:"Muscat",         country:"OM", lat:23.5880,  lng:58.3829,  capital:true  },
-    { name:"Amman",          country:"JO", lat:31.9454,  lng:35.9284,  capital:true  },
-    { name:"Beirut",         country:"LB", lat:33.8886,  lng:35.4955,  capital:true  },
-    { name:"Tel Aviv",       country:"IL", lat:32.0853,  lng:34.7818,  capital:false },
-    { name:"Jerusalem",      country:"IL", lat:31.7683,  lng:35.2137,  capital:true  },
-    { name:"Ankara",         country:"TR", lat:39.9334,  lng:32.8597,  capital:true  },
     { name:"Istanbul",       country:"TR", lat:41.0082,  lng:28.9784,  capital:false },
-    { name:"Tashkent",       country:"UZ", lat:41.2995,  lng:69.2401,  capital:true  },
-    { name:"Almaty",         country:"KZ", lat:43.2220,  lng:76.8512,  capital:false },
-    { name:"Baku",           country:"AZ", lat:40.4093,  lng:49.8671,  capital:true  },
-    { name:"Tbilisi",        country:"GE", lat:41.6938,  lng:44.8015,  capital:true  },
-    { name:"Yerevan",        country:"AM", lat:40.1792,  lng:44.4991,  capital:true  },
-    // Europe
+    { name:"Ankara",         country:"TR", lat:39.9334,  lng:32.8597,  capital:true  },
     { name:"London",         country:"GB", lat:51.5074,  lng:-0.1278,  capital:true  },
-    { name:"Manchester",     country:"GB", lat:53.4808,  lng:-2.2426,  capital:false },
-    { name:"Edinburgh",      country:"GB", lat:55.9533,  lng:-3.1883,  capital:false },
     { name:"Paris",          country:"FR", lat:48.8566,  lng:2.3522,   capital:true  },
-    { name:"Lyon",           country:"FR", lat:45.7640,  lng:4.8357,   capital:false },
-    { name:"Marseille",      country:"FR", lat:43.2965,  lng:5.3698,   capital:false },
     { name:"Berlin",         country:"DE", lat:52.5200,  lng:13.4050,  capital:true  },
-    { name:"Munich",         country:"DE", lat:48.1351,  lng:11.5820,  capital:false },
-    { name:"Hamburg",        country:"DE", lat:53.5753,  lng:10.0153,  capital:false },
-    { name:"Frankfurt",      country:"DE", lat:50.1109,  lng:8.6821,   capital:false },
     { name:"Madrid",         country:"ES", lat:40.4168,  lng:-3.7038,  capital:true  },
-    { name:"Barcelona",      country:"ES", lat:41.3851,  lng:2.1734,   capital:false },
     { name:"Rome",           country:"IT", lat:41.9028,  lng:12.4964,  capital:true  },
-    { name:"Milan",          country:"IT", lat:45.4642,  lng:9.1900,   capital:false },
-    { name:"Naples",         country:"IT", lat:40.8518,  lng:14.2681,  capital:false },
     { name:"Amsterdam",      country:"NL", lat:52.3676,  lng:4.9041,   capital:true  },
-    { name:"Brussels",       country:"BE", lat:50.8503,  lng:4.3517,   capital:true  },
     { name:"Vienna",         country:"AT", lat:48.2082,  lng:16.3738,  capital:true  },
     { name:"Zurich",         country:"CH", lat:47.3769,  lng:8.5417,   capital:false },
-    { name:"Geneva",         country:"CH", lat:46.2044,  lng:6.1432,   capital:false },
     { name:"Prague",         country:"CZ", lat:50.0755,  lng:14.4378,  capital:true  },
     { name:"Warsaw",         country:"PL", lat:52.2297,  lng:21.0122,  capital:true  },
-    { name:"Budapest",       country:"HU", lat:47.4979,  lng:19.0402,  capital:true  },
-    { name:"Bucharest",      country:"RO", lat:44.4268,  lng:26.1025,  capital:true  },
-    { name:"Sofia",          country:"BG", lat:42.6977,  lng:23.3219,  capital:true  },
-    { name:"Belgrade",       country:"RS", lat:44.7866,  lng:20.4489,  capital:true  },
-    { name:"Zagreb",         country:"HR", lat:45.8150,  lng:15.9819,  capital:true  },
-    { name:"Athens",         country:"GR", lat:37.9838,  lng:23.7275,  capital:true  },
     { name:"Stockholm",      country:"SE", lat:59.3293,  lng:18.0686,  capital:true  },
     { name:"Oslo",           country:"NO", lat:59.9139,  lng:10.7522,  capital:true  },
-    { name:"Copenhagen",     country:"DK", lat:55.6761,  lng:12.5683,  capital:true  },
     { name:"Helsinki",       country:"FI", lat:60.1699,  lng:24.9384,  capital:true  },
-    { name:"Tallinn",        country:"EE", lat:59.4370,  lng:24.7536,  capital:true  },
-    { name:"Riga",           country:"LV", lat:56.9460,  lng:24.1059,  capital:true  },
-    { name:"Vilnius",        country:"LT", lat:54.6872,  lng:25.2797,  capital:true  },
-    { name:"Lisbon",         country:"PT", lat:38.7223,  lng:-9.1393,  capital:true  },
-    { name:"Porto",          country:"PT", lat:41.1579,  lng:-8.6291,  capital:false },
-    { name:"Dublin",         country:"IE", lat:53.3498,  lng:-6.2603,  capital:true  },
-    { name:"Reykjavik",      country:"IS", lat:64.1355,  lng:-21.8954, capital:true  },
     { name:"Moscow",         country:"RU", lat:55.7558,  lng:37.6173,  capital:true  },
-    { name:"St Petersburg",  country:"RU", lat:59.9343,  lng:30.3351,  capital:false },
     { name:"Kyiv",           country:"UA", lat:50.4501,  lng:30.5234,  capital:true  },
-    { name:"Minsk",          country:"BY", lat:53.9045,  lng:27.5615,  capital:true  },
-    { name:"Bratislava",     country:"SK", lat:48.1486,  lng:17.1077,  capital:true  },
-    { name:"Ljubljana",      country:"SI", lat:46.0569,  lng:14.5058,  capital:true  },
-    { name:"Sarajevo",       country:"BA", lat:43.8563,  lng:18.4131,  capital:true  },
-    { name:"Tirana",         country:"AL", lat:41.3275,  lng:19.8187,  capital:true  },
-    // Africa
+    { name:"Athens",         country:"GR", lat:37.9838,  lng:23.7275,  capital:true  },
     { name:"Cairo",          country:"EG", lat:30.0444,  lng:31.2357,  capital:true  },
-    { name:"Alexandria",     country:"EG", lat:31.2001,  lng:29.9187,  capital:false },
     { name:"Casablanca",     country:"MA", lat:33.5731,  lng:-7.5898,  capital:false },
-    { name:"Marrakech",      country:"MA", lat:31.6295,  lng:-7.9811,  capital:false },
-    { name:"Tunis",          country:"TN", lat:36.8190,  lng:10.1658,  capital:true  },
-    { name:"Algiers",        country:"DZ", lat:36.7538,  lng:3.0588,   capital:true  },
-    { name:"Addis Ababa",    country:"ET", lat:9.1450,   lng:40.4897,  capital:true  },
     { name:"Nairobi",        country:"KE", lat:-1.2921,  lng:36.8219,  capital:true  },
-    { name:"Mombasa",        country:"KE", lat:-4.0435,  lng:39.6682,  capital:false },
-    { name:"Dar es Salaam",  country:"TZ", lat:-6.7924,  lng:39.2083,  capital:false },
-    { name:"Kampala",        country:"UG", lat:0.3476,   lng:32.5825,  capital:true  },
-    { name:"Kigali",         country:"RW", lat:-1.9441,  lng:30.0619,  capital:true  },
     { name:"Lagos",          country:"NG", lat:6.5244,   lng:3.3792,   capital:false },
-    { name:"Abuja",          country:"NG", lat:9.0765,   lng:7.3986,   capital:true  },
-    { name:"Accra",          country:"GH", lat:5.6037,   lng:-0.1870,  capital:true  },
-    { name:"Dakar",          country:"SN", lat:14.7167,  lng:-17.4677, capital:true  },
-    { name:"Kinshasa",       country:"CD", lat:-4.4419,  lng:15.2663,  capital:true  },
-    { name:"Luanda",         country:"AO", lat:-8.8383,  lng:13.2344,  capital:true  },
     { name:"Johannesburg",   country:"ZA", lat:-26.2041, lng:28.0473,  capital:false },
     { name:"Cape Town",      country:"ZA", lat:-33.9249, lng:18.4241,  capital:false },
-    { name:"Pretoria",       country:"ZA", lat:-25.7461, lng:28.1881,  capital:true  },
-    { name:"Durban",         country:"ZA", lat:-29.8587, lng:31.0218,  capital:false },
-    { name:"Maputo",         country:"MZ", lat:-25.9692, lng:32.5732,  capital:true  },
-    { name:"Antananarivo",   country:"MG", lat:-18.8792, lng:47.5079,  capital:true  },
-    { name:"Khartoum",       country:"SD", lat:15.5007,  lng:32.5599,  capital:true  },
-    { name:"Tripoli",        country:"LY", lat:32.8872,  lng:13.1913,  capital:true  },
-    // Americas
     { name:"Washington DC",  country:"US", lat:38.9072,  lng:-77.0369, capital:true  },
     { name:"New York",       country:"US", lat:40.7128,  lng:-74.0060, capital:false },
     { name:"Los Angeles",    country:"US", lat:34.0522,  lng:-118.2437,capital:false },
     { name:"Chicago",        country:"US", lat:41.8781,  lng:-87.6298, capital:false },
     { name:"Houston",        country:"US", lat:29.7604,  lng:-95.3698, capital:false },
-    { name:"Phoenix",        country:"US", lat:33.4484,  lng:-112.0740,capital:false },
     { name:"San Francisco",  country:"US", lat:37.7749,  lng:-122.4194,capital:false },
-    { name:"Seattle",        country:"US", lat:47.6062,  lng:-122.3321,capital:false },
     { name:"Miami",          country:"US", lat:25.7617,  lng:-80.1918, capital:false },
-    { name:"Boston",         country:"US", lat:42.3601,  lng:-71.0589, capital:false },
-    { name:"Dallas",         country:"US", lat:32.7767,  lng:-96.7970, capital:false },
-    { name:"Atlanta",        country:"US", lat:33.7490,  lng:-84.3880, capital:false },
-    { name:"Las Vegas",      country:"US", lat:36.1699,  lng:-115.1398,capital:false },
-    { name:"Denver",         country:"US", lat:39.7392,  lng:-104.9903,capital:false },
-    { name:"Honolulu",       country:"US", lat:21.3069,  lng:-157.8583,capital:false },
-    { name:"Anchorage",      country:"US", lat:61.2181,  lng:-149.9003,capital:false },
     { name:"Toronto",        country:"CA", lat:43.6532,  lng:-79.3832, capital:false },
-    { name:"Montreal",       country:"CA", lat:45.5017,  lng:-73.5673, capital:false },
     { name:"Vancouver",      country:"CA", lat:49.2827,  lng:-123.1207,capital:false },
     { name:"Ottawa",         country:"CA", lat:45.4215,  lng:-75.6972, capital:true  },
-    { name:"Calgary",        country:"CA", lat:51.0447,  lng:-114.0719,capital:false },
     { name:"Mexico City",    country:"MX", lat:19.4326,  lng:-99.1332, capital:true  },
-    { name:"Guadalajara",    country:"MX", lat:20.6597,  lng:-103.3496,capital:false },
-    { name:"Monterrey",      country:"MX", lat:25.6866,  lng:-100.3161,capital:false },
-    { name:"Havana",         country:"CU", lat:23.1136,  lng:-82.3666, capital:true  },
-    { name:"Panama City",    country:"PA", lat:8.9936,   lng:-79.5197, capital:true  },
     { name:"Bogota",         country:"CO", lat:4.7110,   lng:-74.0721, capital:true  },
-    { name:"Medellin",       country:"CO", lat:6.2476,   lng:-75.5658, capital:false },
-    { name:"Caracas",        country:"VE", lat:10.4806,  lng:-66.9036, capital:true  },
-    { name:"Lima",           country:"PE", lat:-12.0464, lng:-77.0428, capital:true  },
-    { name:"Quito",          country:"EC", lat:-0.1807,  lng:-78.4678, capital:true  },
-    { name:"La Paz",         country:"BO", lat:-16.5000, lng:-68.1193, capital:true  },
     { name:"São Paulo",      country:"BR", lat:-23.5505, lng:-46.6333, capital:false },
     { name:"Rio de Janeiro", country:"BR", lat:-22.9068, lng:-43.1729, capital:false },
-    { name:"Brasilia",       country:"BR", lat:-15.7801, lng:-47.9292, capital:true  },
-    { name:"Manaus",         country:"BR", lat:-3.1190,  lng:-60.0217, capital:false },
     { name:"Buenos Aires",   country:"AR", lat:-34.6037, lng:-58.3816, capital:true  },
     { name:"Santiago",       country:"CL", lat:-33.4489, lng:-70.6693, capital:true  },
-    { name:"Montevideo",     country:"UY", lat:-34.9011, lng:-56.1645, capital:true  },
-    { name:"Asuncion",       country:"PY", lat:-25.2867, lng:-57.6470, capital:true  },
-    // Oceania
+    { name:"Lima",           country:"PE", lat:-12.0464, lng:-77.0428, capital:true  },
     { name:"Sydney",         country:"AU", lat:-33.8688, lng:151.2093, capital:false },
     { name:"Melbourne",      country:"AU", lat:-37.8136, lng:144.9631, capital:false },
-    { name:"Brisbane",       country:"AU", lat:-27.4698, lng:153.0251, capital:false },
-    { name:"Perth",          country:"AU", lat:-31.9505, lng:115.8605, capital:false },
-    { name:"Adelaide",       country:"AU", lat:-34.9285, lng:138.6007, capital:false },
-    { name:"Canberra",       country:"AU", lat:-35.2809, lng:149.1300, capital:true  },
     { name:"Auckland",       country:"NZ", lat:-36.8485, lng:174.7633, capital:false },
     { name:"Wellington",     country:"NZ", lat:-41.2866, lng:174.7756, capital:true  },
-    { name:"Christchurch",   country:"NZ", lat:-43.5321, lng:172.6362, capital:false },
-    { name:"Suva",           country:"FJ", lat:-18.1248, lng:178.4501, capital:true  },
-    { name:"Port Moresby",   country:"PG", lat:-9.4438,  lng:147.1803, capital:true  },
+    { name:"Havana",         country:"CU", lat:23.1136,  lng:-82.3666, capital:true  },
+    { name:"Lisbon",         country:"PT", lat:38.7223,  lng:-9.1393,  capital:true  },
+    { name:"Dublin",         country:"IE", lat:53.3498,  lng:-6.2603,  capital:true  },
+    { name:"Reykjavik",      country:"IS", lat:64.1355,  lng:-21.8954, capital:true  },
+    { name:"Addis Ababa",    country:"ET", lat:9.1450,   lng:40.4897,  capital:true  },
+    { name:"Kinshasa",       country:"CD", lat:-4.4419,  lng:15.2663,  capital:true  },
+    { name:"Colombo",        country:"LK", lat:6.9271,   lng:79.8612,  capital:true  },
+    { name:"Kathmandu",      country:"NP", lat:27.7172,  lng:85.3240,  capital:true  },
+    { name:"Ulaanbaatar",    country:"MN", lat:47.8864,  lng:106.9057, capital:true  },
+    { name:"Tashkent",       country:"UZ", lat:41.2995,  lng:69.2401,  capital:true  },
+    { name:"Baku",           country:"AZ", lat:40.4093,  lng:49.8671,  capital:true  },
+    { name:"Tbilisi",        country:"GE", lat:41.6938,  lng:44.8015,  capital:true  },
 ];
 
-// ─── GLOBE: build points data with temperature colors ────
 function buildGlobePointsData() {
     return worldCities.map(city => {
         const cacheKey = `${city.name},${city.country}`;
         const tempC = cityTempCache[cacheKey] !== undefined
             ? cityTempCache[cacheKey]
             : estimateTempFromLatitude(city.lat);
-        return {
-            ...city,
-            color: getTempColor(tempC),
-            radius: city.capital ? 0.55 : 0.35,
-            altitude: 0.005,
-            tempC,
-        };
+        return { ...city, color: getTempColor(tempC), radius: city.capital ? 0.55 : 0.35, altitude: 0.005, tempC };
     });
 }
 
-// ─── SELECTED CITY PIN (DOM overlay — tracks city every frame) ───
+// ─── PIN ELEMENT ─────────────────────────────────────────
 let pinEl = null;
 let pinnedLat = null;
 let pinnedLng = null;
@@ -876,14 +825,13 @@ function ensurePinEl() {
     pinEl = document.createElement('div');
     pinEl.id = 'globeSelectedPin';
     pinEl.innerHTML = `<div class="globe-pin-circle"></div><div class="globe-pin-needle"></div>`;
-    document.querySelector('.globe-container').appendChild(pinEl);
+    const container = document.querySelector('.globe-container');
+    if (container) container.appendChild(pinEl);
     return pinEl;
 }
 
-// Called every rAF frame from the rotation loop to keep the pin locked to the city
 function updatePinPosition() {
     const pin = ensurePinEl();
-    // Hide pin whenever globe is auto-rotating
     if (globeRotating || pinnedLat === null || !globe) {
         pin.classList.remove('visible');
         return;
@@ -902,19 +850,92 @@ function updatePinPosition() {
     }
 }
 
-function showPinAt(lat, lng) {
-    pinnedLat = lat;
-    pinnedLng = lng;
-    // Position will be updated by the rAF loop next tick
-}
-
+function showPinAt(lat, lng) { pinnedLat = lat; pinnedLng = lng; }
 function hidePinEl() {
-    pinnedLat = null;
-    pinnedLng = null;
+    pinnedLat = null; pinnedLng = null;
     if (pinEl) pinEl.classList.remove('visible');
 }
 
-// ─── GLOBE SEARCH BAR ─────────────────────────────────────
+// ─── GLOBE LOADING STATE ─────────────────────────────────
+function showGlobeWeatherLoading() {
+    const emptyState = document.getElementById('globeEmptyState');
+    if (emptyState) emptyState.style.display = 'none';
+
+    const loadingEl = document.getElementById('globeLoading');
+    if (loadingEl) loadingEl.style.display = 'flex';
+
+    const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox','globeUVBox'];
+    boxIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // Update info overlay to show loading state
+    const cityEl = document.getElementById('globeCity');
+    if (cityEl && cityEl.textContent !== 'Click a city on the globe') {
+        cityEl.innerHTML = `<span class="globe-info-loading">Fetching weather <span class="globe-dot-bounce"></span></span>`;
+    }
+}
+
+function hideGlobeWeatherLoading() {
+    const loadingEl = document.getElementById('globeLoading');
+    if (loadingEl) loadingEl.style.display = 'none';
+}
+
+// ─── GLOBE INIT LOADING SCREEN ───────────────────────────
+function showGlobeInitLoading() {
+    const container = document.getElementById('globeViz');
+    if (!container || document.getElementById('globeInitLoader')) return;
+    const loader = document.createElement('div');
+    loader.id = 'globeInitLoader';
+    loader.className = 'globe-init-loader';
+    loader.innerHTML = `
+        <div class="globe-init-loader-inner">
+            <div class="globe-init-spinner">
+                <div class="globe-init-ring"></div>
+                <div class="globe-init-ring"></div>
+                <div class="globe-init-ring"></div>
+                <div class="globe-init-earth">🌍</div>
+            </div>
+            <p class="globe-init-text">Initializing Globe...</p>
+            <div class="globe-init-steps">
+                <div class="globe-init-step active" id="gStep1">
+                    <div class="gstep-dot"></div>
+                    <span>Loading 3D engine</span>
+                </div>
+                <div class="globe-init-step" id="gStep2">
+                    <div class="gstep-dot"></div>
+                    <span>Rendering Earth</span>
+                </div>
+                <div class="globe-init-step" id="gStep3">
+                    <div class="gstep-dot"></div>
+                    <span>Placing cities</span>
+                </div>
+            </div>
+        </div>`;
+    container.appendChild(loader);
+
+    // Animate steps
+    setTimeout(() => {
+        const s2 = document.getElementById('gStep2');
+        if (s2) { s2.classList.add('active'); document.getElementById('gStep1')?.classList.add('done'); }
+    }, 600);
+    setTimeout(() => {
+        const s3 = document.getElementById('gStep3');
+        if (s3) { s3.classList.add('active'); document.getElementById('gStep2')?.classList.add('done'); }
+    }, 1200);
+}
+
+function hideGlobeInitLoading() {
+    const loader = document.getElementById('globeInitLoader');
+    if (loader) {
+        document.getElementById('gStep3')?.classList.add('done');
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 500);
+    }
+}
+
+// ─── SEARCH BAR ──────────────────────────────────────────
 function buildGlobeSearchBar() {
     const container = document.querySelector('.globe-container');
     if (!container || document.getElementById('globeSearchWrapper')) return;
@@ -925,7 +946,7 @@ function buildGlobeSearchBar() {
     wrapper.innerHTML = `
         <div class="globe-search-inner" id="globeSearchInner">
             <span class="globe-search-icon material-symbols-outlined">travel_explore</span>
-            <input type="text" id="globeSearchInput" placeholder="Search any city on the globe…" autocomplete="off" />
+            <input type="text" id="globeSearchInput" placeholder="Search any city…" autocomplete="off" inputmode="search" />
             <button class="globe-search-clear-btn" id="globeSearchClearBtn" title="Clear">✕</button>
             <button class="globe-search-btn" id="globeSearchBtn">Go</button>
         </div>
@@ -969,6 +990,14 @@ function buildGlobeSearchBar() {
                 ${city.capital ? '<span class="globe-sugg-capital">Capital</span>' : ''}
                 ${tempStr ? `<span style="margin-left:auto;font-size:10px;color:rgba(255,255,255,0.5);padding-left:8px;">${tempStr}</span>` : ''}
             `;
+            item.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                flyToCity(city);
+                input.value = city.name;
+                dropdown.classList.remove('open');
+                clearBtn.classList.toggle('visible', !!input.value);
+                input.blur();
+            });
             item.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 flyToCity(city);
@@ -1008,7 +1037,6 @@ function buildGlobeSearchBar() {
             dropdown.classList.remove('open');
             input.blur();
         }
-        // Stop arrow keys from controlling globe rotation when typing
         e.stopPropagation();
     });
 
@@ -1021,8 +1049,16 @@ function buildGlobeSearchBar() {
         clearBtn.classList.remove('visible');
         input.focus();
     });
+    clearBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        input.value = '';
+        dropdown.classList.remove('open');
+        clearBtn.classList.remove('visible');
+        input.focus();
+    });
 
     goBtn.addEventListener('click', globeSearchGo);
+    goBtn.addEventListener('touchend', (e) => { e.preventDefault(); globeSearchGo(); });
 }
 
 function globeSearchGo() {
@@ -1035,13 +1071,13 @@ function globeSearchGo() {
         flyToCity(match);
         document.getElementById('globeSearchDropdown').classList.remove('open');
     } else {
-        // Try to fetch weather by city name directly
         handleGlobeSearchByName(input.value.trim());
     }
 }
 
 async function handleGlobeSearchByName(cityName) {
     if (!cityName) return;
+    showGlobeWeatherLoading();
     try {
         const data = await fetchWithRetry(
             `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cityName)}&units=metric&appid=${apiKey}`,
@@ -1051,14 +1087,16 @@ async function handleGlobeSearchByName(cityName) {
         const name = data.name;
         document.getElementById('globeCity').textContent   = `${name}, ${data.sys.country}`;
         document.getElementById('globeCoords').textContent = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
-        globe.pointOfView({ lat, lng: lng, altitude: 1.5 }, 1200);
+        globe.pointOfView({ lat, lng, altitude: 1.5 }, 1200);
         currentPOV = { lat, lng, altitude: 1.5 };
         globeRotating = false;
         showPinAt(lat, lng);
         fetchGlobeWeather(lat, lng, name);
         setTimeout(() => { globeRotating = true; }, 5000);
     } catch(err) {
+        hideGlobeWeatherLoading();
         document.getElementById('globeCity').textContent = `City "${cityName}" not found`;
+        showGlobeError(`Could not find "${cityName}". Try searching a different city.`);
     }
 }
 
@@ -1074,7 +1112,7 @@ function flyToCity(city) {
     setTimeout(() => { globeRotating = true; }, 5000);
 }
 
-// ─── TEMPERATURE LEGEND ───────────────────────────────────
+// ─── TEMPERATURE LEGEND ──────────────────────────────────
 function buildTempLegend() {
     const container = document.querySelector('.globe-container');
     if (!container || document.getElementById('globeTempLegend')) return;
@@ -1085,49 +1123,29 @@ function buildTempLegend() {
         <div class="globe-temp-legend-title">🌡 City Temp</div>
         <div class="globe-temp-legend-bar"></div>
         <div class="globe-temp-legend-labels">
-            <span>Cold</span><span>Cool</span><span>Warm</span><span>Hot</span><span>🔥</span>
+            <span>Cold</span><span>Warm</span><span>🔥</span>
         </div>
-        <div class="globe-legend-dot-row" style="margin-top:6px;">
-            <div class="globe-legend-dot" style="background:#cc88ff"></div>
-            <span class="globe-legend-dot-label">&lt;0°C</span>
-        </div>
-        <div class="globe-legend-dot-row">
-            <div class="globe-legend-dot" style="background:#44aaff"></div>
-            <span class="globe-legend-dot-label">0–15°C</span>
-        </div>
-        <div class="globe-legend-dot-row">
-            <div class="globe-legend-dot" style="background:#aaee00"></div>
-            <span class="globe-legend-dot-label">15–25°C</span>
-        </div>
-        <div class="globe-legend-dot-row">
-            <div class="globe-legend-dot" style="background:#ffcc00"></div>
-            <span class="globe-legend-dot-label">25–30°C</span>
-        </div>
-        <div class="globe-legend-dot-row">
-            <div class="globe-legend-dot" style="background:#ff8800"></div>
-            <span class="globe-legend-dot-label">30–35°C</span>
-        </div>
-        <div class="globe-legend-dot-row">
-            <div class="globe-legend-dot" style="background:#ff1a1a"></div>
-            <span class="globe-legend-dot-label">&gt;40°C</span>
-        </div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#cc88ff"></div><span class="globe-legend-dot-label">&lt;0°C</span></div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#44aaff"></div><span class="globe-legend-dot-label">0–15°C</span></div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#aaee00"></div><span class="globe-legend-dot-label">15–25°C</span></div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#ffcc00"></div><span class="globe-legend-dot-label">25–30°C</span></div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#ff8800"></div><span class="globe-legend-dot-label">30–40°C</span></div>
+        <div class="globe-legend-dot-row"><div class="globe-legend-dot" style="background:#ff1a1a"></div><span class="globe-legend-dot-label">&gt;40°C</span></div>
     `;
     container.appendChild(legend);
 }
 
-// ─── GLOBE PANEL FUNCTIONS ────────────────────────────────
+// ─── PANEL FUNCTIONS ─────────────────────────────────────
 function toggleGlobePanel() {
     globePanelVisible = !globePanelVisible;
     const panel = document.getElementById('globeWeatherPanel');
     const btn   = document.getElementById('globePanelToggleBtn');
     if (globePanelVisible) {
         panel.style.display = '';
-        btn.title = 'Hide weather panel';
-        btn.querySelector('.material-symbols-outlined').textContent = 'chevron_right';
+        if (btn) { btn.title = 'Hide weather panel'; btn.querySelector('.material-symbols-outlined').textContent = 'chevron_right'; }
     } else {
         panel.style.display = 'none';
-        btn.title = 'Show weather panel';
-        btn.querySelector('.material-symbols-outlined').textContent = 'chevron_left';
+        if (btn) { btn.title = 'Show weather panel'; btn.querySelector('.material-symbols-outlined').textContent = 'chevron_left'; }
     }
     setTimeout(resizeGlobe, 50);
 }
@@ -1135,7 +1153,10 @@ function toggleGlobePanel() {
 function resizeGlobe() {
     if (!globe) return;
     const container = document.getElementById('globeViz');
-    if (container) { globe.width(container.clientWidth); globe.height(container.clientHeight); }
+    if (container) {
+        globe.width(container.clientWidth);
+        globe.height(container.clientHeight);
+    }
 }
 
 function initPanelResize() {
@@ -1161,77 +1182,94 @@ function initPanelResize() {
         document.addEventListener('mouseup', onMouseUp);
         e.preventDefault();
     });
-    handle.addEventListener('touchstart', (e) => { startX=e.touches[0].clientX; startW=panel.offsetWidth; handle.classList.add('dragging'); e.preventDefault(); }, {passive:false});
-    handle.addEventListener('touchmove', (e) => {
-        const newW = Math.min(globePanelMaxWidth, Math.max(globePanelMinWidth, startW + (startX - e.touches[0].clientX)));
-        panel.style.width = newW + 'px'; resizeGlobe(); e.preventDefault();
-    }, {passive:false});
-    handle.addEventListener('touchend', () => handle.classList.remove('dragging'));
 }
 
-// ─── GLOBE WEATHER FETCH ──────────────────────────────────
+// ─── GLOBE WEATHER FETCH ─────────────────────────────────
 async function fetchGlobeWeather(lat, lng, locationName) {
-    document.getElementById('globeEmptyState').style.display = 'none';
-    document.getElementById('globeLoading').style.display   = 'flex';
-    const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox','globeUVBox'];
-    boxIds.forEach(id => { document.getElementById(id).style.display = 'none'; });
-    if (!navigator.onLine) { document.getElementById('globeLoading').style.display='none'; showGlobeError(NetworkErrors.OFFLINE); return; }
+    showGlobeWeatherLoading();
+
+    if (!navigator.onLine) {
+        hideGlobeWeatherLoading();
+        showGlobeError(NetworkErrors.OFFLINE);
+        return;
+    }
+
     try {
-        const data = await fetchWithRetry(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`,
-            {}, 3, 8000
-        );
+        const [data] = await Promise.all([
+            fetchWithRetry(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${apiKey}`,
+                {}, 3, 8000
+            )
+        ]);
+
         const isDay = data.dt >= data.sys.sunrise && data.dt <= data.sys.sunset;
         const uvIndex = isDay ? await fetchRealUVIndex(lat, lng) : 0;
         const cityName = data.name || locationName || 'Unknown Location';
 
-        // Update dot color cache and refresh globe points
+        // Cache temp for color updates
         const cacheKey = `${cityName},${data.sys.country}`;
         cityTempCache[cacheKey] = data.main.temp;
-        if (globe) {
-            const pts = buildGlobePointsData();
-            globe.pointsData(pts);
-        }
+        if (globe) globe.pointsData(buildGlobePointsData());
 
+        // Update info overlay
         document.getElementById('globeCity').textContent   = `${cityName}, ${data.sys.country}`;
         document.getElementById('globeCoords').textContent = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+
+        // Update weather boxes
         document.getElementById('globeTempValue').textContent  = tempLabel(data.main.temp);
         document.getElementById('globeFeelsLike').textContent  = `Feels like ${tempLabel(data.main.feels_like)}`;
+
         const condDesc = data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
         document.getElementById('globeCondValue').textContent  = condDesc;
         document.getElementById('globeCondDetail').textContent = `Humidity: ${data.main.humidity}%`;
+
         const iconMap = {'01':'wb_sunny','02':'partly_cloudy_day','03':'cloud','04':'cloud','09':'rainy','10':'rainy','11':'thunderstorm','13':'ac_unit','50':'foggy'};
         document.getElementById('globeCondIcon').textContent = iconMap[data.weather[0].icon.substring(0,2)] || 'wb_sunny';
+
         document.getElementById('globeWindValue').textContent = `${data.wind.speed} m/s`;
         document.getElementById('globeWindDir').textContent   = `Direction: ${data.wind.deg ?? '--'}°`;
         document.getElementById('globeHumidValue').textContent = `${data.main.humidity}%`;
         document.getElementById('globePressure').textContent   = `Pressure: ${data.main.pressure} hPa`;
+
         const visKm = data.visibility ? (data.visibility/1000).toFixed(1) : '--';
         document.getElementById('globeVisValue').textContent = `${visKm} km`;
+
         const sunrise = new Date(data.sys.sunrise*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
         const sunset  = new Date(data.sys.sunset*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
         document.getElementById('globeSunrise').textContent = `☀️ ${sunrise} — 🌙 ${sunset}`;
+
         document.getElementById('globeUVValue').textContent  = uvIndex !== null ? uvIndex : '--';
         document.getElementById('globeUVDetail').textContent = getUVLabel(uvIndex);
 
-        // Update temp color on panel header
-        const panelHeader = document.querySelector('.globe-panel-header');
-        if (panelHeader) panelHeader.style.borderBottom = `2px solid ${getTempColor(data.main.temp)}`;
+        // Hide loading, show boxes with stagger animation
+        hideGlobeWeatherLoading();
+        const boxIds = ['globeTempBox','globeConditionBox','globeWindBox','globeHumidityBox','globeVisBox','globeUVBox'];
+        boxIds.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'flex';
+                el.style.animationDelay = `${i * 0.08}s`;
+                el.classList.remove('globe-box-in');
+                void el.offsetWidth; // force reflow
+                el.classList.add('globe-box-in');
+            }
+        });
 
-        document.getElementById('globeLoading').style.display = 'none';
-        boxIds.forEach(id => { document.getElementById(id).style.display = 'flex'; });
     } catch (err) {
-        document.getElementById('globeLoading').style.display = 'none';
+        hideGlobeWeatherLoading();
         showGlobeError(err.message || NetworkErrors.UNKNOWN);
     }
 }
 
 function showGlobeError(message) {
     const emptyState = document.getElementById('globeEmptyState');
-    emptyState.style.display = 'flex';
-    emptyState.innerHTML = `
-        <div style="font-size:40px;text-align:center;margin-bottom:12px">⚠️</div>
-        <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">${message}</p>`;
+    if (emptyState) {
+        emptyState.style.display = 'flex';
+        emptyState.innerHTML = `
+            <div style="font-size:40px;text-align:center;margin-bottom:12px">⚠️</div>
+            <p style="color:rgba(255,255,255,0.7);text-align:center;font-size:13px;line-height:1.6">${message}</p>
+            <button onclick="document.getElementById('globeEmptyState').style.display='none'" style="margin-top:10px;padding:6px 16px;border:1px solid rgba(0,198,255,0.4);background:rgba(0,198,255,0.1);color:white;border-radius:20px;cursor:pointer;font-size:12px;">Dismiss</button>`;
+    }
 }
 
 function getUVLabel(uv) {
@@ -1241,10 +1279,16 @@ function getUVLabel(uv) {
     return 'Extreme';
 }
 
-// ─── GLOBE INIT ───────────────────────────────────────────
+// ─── GLOBE INIT ──────────────────────────────────────────
 function initGlobe() {
     const container = document.getElementById('globeViz');
-    if (!container || typeof Globe === 'undefined') return;
+    if (!container || typeof Globe === 'undefined') {
+        // Globe.gl not loaded yet, retry
+        setTimeout(initGlobe, 500);
+        return;
+    }
+
+    showGlobeInitLoading();
 
     const initialPoints = buildGlobePointsData();
 
@@ -1255,7 +1299,6 @@ function initGlobe() {
         .showAtmosphere(true)
         .atmosphereColor('rgba(100, 180, 255, 0.4)')
         .atmosphereAltitude(0.15)
-        // City dots with temperature colors
         .pointsData(initialPoints)
         .pointLat(d => d.lat)
         .pointLng(d => d.lng)
@@ -1265,7 +1308,6 @@ function initGlobe() {
         .pointResolution(12)
         .pointsMerge(false)
         .onPointClick(d => flyToCity(d))
-        // City labels
         .labelsData(worldCities)
         .labelLat(d => d.lat)
         .labelLng(d => d.lng)
@@ -1279,26 +1321,104 @@ function initGlobe() {
         .onGlobeClick(({ lat, lng }) => handleGlobeClick(lat, lng))
         (container);
 
+    // Set initial POV
     globe.pointOfView({ lat: 14.5995, lng: 120.9842, altitude: 2.5 }, 1000);
     currentPOV = { lat: 14.5995, lng: 120.9842, altitude: 2.5 };
 
-    globeRotating = true;
-    startRotation();
-    setupGlobeControls();
-    initPanelResize();
-    buildGlobeSearchBar();
-    buildTempLegend();
-    ensurePinEl();
-    document.addEventListener('keydown', handleGlobeKeyboard);
+    // Disable built-in controls on mobile to use custom ones
+    isMobile() && globe.controls && globe.controls() && (globe.controls().enableZoom = false);
 
-    // Preload temps for first 20 cities in background
-    preloadCityTemps();
+    // Hide init loader after globe renders
+    setTimeout(() => {
+        hideGlobeInitLoading();
+        globeRotating = true;
+        startRotation();
+        setupGlobeControls();
+        setupMobileGestures();
+        initPanelResize();
+        buildGlobeSearchBar();
+        buildTempLegend();
+        ensurePinEl();
+        document.addEventListener('keydown', handleGlobeKeyboard);
+        preloadCityTemps();
+    }, 1800);
 }
 
-// Preload temperatures for major cities to color dots more accurately
+function isMobile() {
+    return window.innerWidth <= 768 || ('ontouchstart' in window);
+}
+
+// ─── MOBILE TOUCH GESTURES ───────────────────────────────
+function setupMobileGestures() {
+    const vizEl = document.getElementById('globeViz');
+    if (!vizEl) return;
+
+    function getTouchDist(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx*dx + dy*dy);
+    }
+
+    vizEl.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            globeTouchState.active = true;
+            globeTouchState.lastX = e.touches[0].clientX;
+            globeTouchState.lastY = e.touches[0].clientY;
+            globeTouchState.isPinch = false;
+            globeTouchState.startTime = Date.now();
+        } else if (e.touches.length === 2) {
+            globeTouchState.isPinch = true;
+            globeTouchState.lastDist = getTouchDist(e.touches[0], e.touches[1]);
+        }
+    }, { passive: true });
+
+    vizEl.addEventListener('touchmove', (e) => {
+        if (!globe) return;
+        e.preventDefault();
+
+        if (e.touches.length === 2 && globeTouchState.isPinch) {
+            // Pinch to zoom
+            const dist = getTouchDist(e.touches[0], e.touches[1]);
+            const delta = globeTouchState.lastDist - dist;
+            const pov = globe.pointOfView();
+            const newAlt = Math.max(0.5, Math.min(8, pov.altitude + delta * 0.01));
+            globe.pointOfView({ lat: pov.lat, lng: pov.lng, altitude: newAlt });
+            globeTouchState.lastDist = dist;
+        } else if (e.touches.length === 1 && globeTouchState.active && !globeTouchState.isPinch) {
+            // Drag to rotate
+            const dx = e.touches[0].clientX - globeTouchState.lastX;
+            const dy = e.touches[0].clientY - globeTouchState.lastY;
+            const pov = globe.pointOfView();
+            globe.pointOfView({
+                lat: Math.max(-80, Math.min(80, pov.lat - dy * 0.3)),
+                lng: pov.lng + dx * 0.3,
+                altitude: pov.altitude
+            });
+            globeTouchState.lastX = e.touches[0].clientX;
+            globeTouchState.lastY = e.touches[0].clientY;
+            globeRotating = false;
+        }
+    }, { passive: false });
+
+    vizEl.addEventListener('touchend', (e) => {
+        const elapsed = Date.now() - globeTouchState.startTime;
+        globeTouchState.active = false;
+        globeTouchState.isPinch = false;
+        // Tap detection (short touch, minimal movement)
+        if (elapsed < 300 && e.changedTouches.length === 1) {
+            // Let globe handle the click naturally
+        }
+        // Resume rotation after 4 seconds of inactivity
+        clearTimeout(globeTouchState.resumeTimer);
+        globeTouchState.resumeTimer = setTimeout(() => {
+            globeRotating = true;
+        }, 4000);
+    }, { passive: true });
+}
+
+// ─── CITY TEMP PRELOAD ───────────────────────────────────
 async function preloadCityTemps() {
-    // Batch: load temperatures for the first 20 most major cities
-    const major = worldCities.filter(c => c.capital).slice(0, 20);
+    const major = worldCities.filter(c => c.capital).slice(0, 15);
     for (const city of major) {
         try {
             const data = await fetchWithRetry(
@@ -1307,17 +1427,14 @@ async function preloadCityTemps() {
             );
             const cacheKey = `${city.name},${city.country}`;
             cityTempCache[cacheKey] = data.main.temp;
-            // Throttle requests
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
         } catch(e) {}
     }
-    // Refresh globe dots with real temp data
     if (globe) globe.pointsData(buildGlobePointsData());
 }
 
-// ─── GLOBE CLICK HANDLERS ────────────────────────────────
+// ─── GLOBE CLICK ─────────────────────────────────────────
 function handleGlobeClick(lat, lng) {
-    const wasRotating = globeRotating;
     globeRotating = false;
     globe.pointOfView({ lat, lng, altitude: 1.8 }, 800);
     currentPOV = { lat, lng, altitude: 1.8 };
@@ -1325,10 +1442,10 @@ function handleGlobeClick(lat, lng) {
     document.getElementById('globeCity').textContent   = 'Fetching location...';
     showPinAt(lat, lng);
     fetchGlobeWeather(lat, lng, null);
-    if (wasRotating) setTimeout(() => { globeRotating = true; }, 3000);
+    setTimeout(() => { globeRotating = true; }, 3000);
 }
 
-// ─── ROTATION ─────────────────────────────────────────────
+// ─── ROTATION LOOP ───────────────────────────────────────
 function startRotation() {
     if (rotationAnimFrame) cancelAnimationFrame(rotationAnimFrame);
     function rotate() {
@@ -1336,7 +1453,6 @@ function startRotation() {
             const pov = globe.pointOfView();
             globe.pointOfView({ lat: pov.lat, lng: pov.lng + rotationSpeed, altitude: pov.altitude });
         }
-        // Pin tracks city every frame; hides automatically when globeRotating is true
         updatePinPosition();
         rotationAnimFrame = requestAnimationFrame(rotate);
     }
@@ -1346,41 +1462,53 @@ function stopRotation() {
     if (rotationAnimFrame) { cancelAnimationFrame(rotationAnimFrame); rotationAnimFrame = null; }
 }
 
-// ─── GLOBE CONTROLS ───────────────────────────────────────
+// ─── CONTROLS ────────────────────────────────────────────
 function setupGlobeControls() {
-    document.getElementById('globeZoomIn').addEventListener('click', () => {
-        const pov = globe.pointOfView(); const newAlt = Math.max(0.5, pov.altitude-0.3);
+    const zoomIn  = document.getElementById('globeZoomIn');
+    const zoomOut = document.getElementById('globeZoomOut');
+    const pause   = document.getElementById('globePauseRotation');
+
+    if (zoomIn) zoomIn.addEventListener('click', () => {
+        const pov = globe.pointOfView(); const newAlt = Math.max(0.5, pov.altitude-0.35);
         globe.pointOfView({lat:pov.lat,lng:pov.lng,altitude:newAlt},300); currentPOV.altitude=newAlt;
     });
-    document.getElementById('globeZoomOut').addEventListener('click', () => {
-        const pov = globe.pointOfView(); const newAlt = Math.min(8, pov.altitude+0.3);
+    if (zoomOut) zoomOut.addEventListener('click', () => {
+        const pov = globe.pointOfView(); const newAlt = Math.min(8, pov.altitude+0.35);
         globe.pointOfView({lat:pov.lat,lng:pov.lng,altitude:newAlt},300); currentPOV.altitude=newAlt;
     });
-    document.getElementById('globePauseRotation').addEventListener('click', () => {
+    if (pause) pause.addEventListener('click', () => {
         globeRotating = !globeRotating;
-        document.getElementById('pauseIcon').textContent = globeRotating ? 'pause' : 'play_arrow';
-        document.getElementById('globePauseRotation').title = globeRotating ? 'Pause Rotation' : 'Resume Rotation';
-        // Immediately update pin visibility on toggle
+        const icon = document.getElementById('pauseIcon');
+        if (icon) icon.textContent = globeRotating ? 'pause' : 'play_arrow';
+        pause.title = globeRotating ? 'Pause Rotation' : 'Resume Rotation';
         updatePinPosition();
     });
-    document.getElementById('globeRotateUp').addEventListener('click',    () => nudgeGlobe(5, 0));
-    document.getElementById('globeRotateDown').addEventListener('click',  () => nudgeGlobe(-5, 0));
-    document.getElementById('globeRotateLeft').addEventListener('click',  () => nudgeGlobe(0, -10));
-    document.getElementById('globeRotateRight').addEventListener('click', () => nudgeGlobe(0, 10));
-    let holdInterval = null;
-    const arrowActions = { globeRotateUp:()=>nudgeGlobe(3,0), globeRotateDown:()=>nudgeGlobe(-3,0), globeRotateLeft:()=>nudgeGlobe(0,-6), globeRotateRight:()=>nudgeGlobe(0,6) };
-    Object.keys(arrowActions).forEach(id => {
+
+    const dirBtns = {
+        globeRotateUp:    () => nudgeGlobe(5, 0),
+        globeRotateDown:  () => nudgeGlobe(-5, 0),
+        globeRotateLeft:  () => nudgeGlobe(0, -10),
+        globeRotateRight: () => nudgeGlobe(0, 10)
+    };
+    Object.entries(dirBtns).forEach(([id, fn]) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('mousedown',  () => { holdInterval = setInterval(arrowActions[id], 80); });
+        if (!btn) return;
+        btn.addEventListener('click', fn);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false });
+        let holdInterval = null;
+        btn.addEventListener('mousedown',  () => { holdInterval = setInterval(fn, 80); });
         btn.addEventListener('mouseup',    () => clearInterval(holdInterval));
         btn.addEventListener('mouseleave', () => clearInterval(holdInterval));
+        btn.addEventListener('touchend',   () => clearInterval(holdInterval));
     });
 }
+
 function nudgeGlobe(latDelta, lngDelta) {
     if (!globe) return;
     const pov = globe.pointOfView();
     globe.pointOfView({lat:Math.max(-80,Math.min(80,pov.lat+latDelta)),lng:pov.lng+lngDelta,altitude:pov.altitude},200);
 }
+
 function handleGlobeKeyboard(e) {
     const activeTag = document.activeElement.tagName;
     if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
@@ -1396,6 +1524,7 @@ function handleGlobeKeyboard(e) {
     }
 }
 
+// ─── TOGGLE GLOBE ────────────────────────────────────────
 function toggleGlobeView() {
     const globeSection = document.getElementById('globeSection');
     const isHidden = globeSection.style.display==='none' || globeSection.style.display==='';
@@ -1418,6 +1547,20 @@ function toggleGlobeView() {
         hidePinEl();
     }
 }
+
+// Handle orientation changes
+window.addEventListener('orientationchange', () => {
+    if (globeOpen) {
+        setTimeout(resizeGlobe, 300);
+    }
+});
+window.addEventListener('resize', () => {
+    if (globeOpen) {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(resizeGlobe, 200);
+    }
+});
+
 
 // ============================================================
 // KILA CHATBOT
