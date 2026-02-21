@@ -205,9 +205,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ============================================================
+
 // INPUT SANITIZATION
-// ============================================================
+
 function sanitizeCityInput(input) {
     return input
         .trim()
@@ -216,9 +216,8 @@ function sanitizeCityInput(input) {
         .substring(0, 100);
 }
 
-// ============================================================
 // OPEN-METEO: UV INDEX
-// ============================================================
+
 async function fetchRealUVIndex(lat, lon) {
     try {
         const data = await fetchWithRetry(
@@ -229,10 +228,9 @@ async function fetchRealUVIndex(lat, lon) {
     } catch { return 0; }
 }
 
-// ============================================================
 // OPEN-METEO: ACCURATE DAILY ASTRONOMICAL DATA
 // Returns sunrise, sunset (ISO strings) for a given lat/lon
-// ============================================================
+
 async function fetchAstronomicalData(lat, lon, days = 14) {
     try {
         const data = await fetchWithRetry(
@@ -244,9 +242,8 @@ async function fetchAstronomicalData(lat, lon, days = 14) {
     } catch { return null; }
 }
 
-// ============================================================
 // OPEN-METEO: 14-DAY FORECAST (real daily data)
-// ============================================================
+
 async function fetchOpenMeteoForecast(lat, lon) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
         `&daily=weathercode,temperature_2m_max,temperature_2m_min,apparent_temperature_max,` +
@@ -288,9 +285,8 @@ function wmoToWeather(code) {
     return map[code] || { desc: 'Unknown', icon: '02d' };
 }
 
-// ============================================================
 // BACKGROUND VIDEO
-// ============================================================
+
 function changeBackgroundVideo(iconCode, rainMmPerHour = 0) {
     let videoFile = "sunny.mp4";
     if      (iconCode === '01d')                                        videoFile = "sunny.mp4";
@@ -352,9 +348,8 @@ function createWeatherIcon(iconCode) {
     weatherIconContainer.appendChild(iconDiv);
 }
 
-// ============================================================
 // DISPLAY WEATHER DATA (current conditions from OWM)
-// ============================================================
+
 async function displayWeatherData(data) {
     clearError();
     window.selectedDayData = null;
@@ -407,9 +402,9 @@ async function displayWeatherData(data) {
     if (todayCard) todayCard.classList.add('selected-day');
 }
 
-// ============================================================
+
 // RENDER ARCH FROM FORECAST DAY (Open-Meteo forecast day click)
-// ============================================================
+
 function renderArchFromForecastDay(dayData) {
     window.selectedDayData = dayData;
 
@@ -508,9 +503,9 @@ function updateFeelsLikeStatus(feelsLike, actualTemp) {
     else                           { statusEl.textContent = "Cooler";   statusEl.classList.add("moderate");  }
 }
 
-// ============================================================
+
 // DATE / TIME — accurate to city timezone
-// ============================================================
+
 let clockInterval;
 
 function updateDateTimeByTimezone(data) {
@@ -541,9 +536,8 @@ function updateDateTimeByTimezone(data) {
     clockInterval = setInterval(updateClock, 1000);
 }
 
-// ============================================================
 // SUN / MOON PANEL — uses Open-Meteo astronomical data
-// ============================================================
+
 
 // Cache astronomical data per location
 let cachedAstroData = null;
@@ -727,9 +721,8 @@ function getMoonPhase(date) {
     else                    return { name: 'New Moon',        emoji: '🌑' };
 }
 
-// ============================================================
 // 14-DAY FORECAST CALENDAR — Real Open-Meteo data
-// ============================================================
+
 function showCalendarShimmer() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
@@ -857,9 +850,9 @@ function displayForecastCalendar(forecastData, lat, lon) {
     }
 }
 
-// ============================================================
+
 // FETCH WEATHER — main entry point
-// ============================================================
+
 async function fetchWeather(city, saveToHistory = true) {
     clearError();
 
@@ -900,9 +893,9 @@ async function fetchWeather(city, saveToHistory = true) {
     }
 }
 
-// ============================================================
+
 // HANDLE SEARCH
-// ============================================================
+
 function handleSearch() {
     const city = cityInput.value.trim();
     if (!city) {
@@ -1351,9 +1344,9 @@ function toggleGlobeView() {
     }
 }
 
-// ============================================================
+
 // KILA CHATBOT
-// ============================================================
+
 function toggleKila() {
     const chatContainer = document.getElementById('chatContainer');
     const toggleBtn     = document.getElementById('kilaToggle');

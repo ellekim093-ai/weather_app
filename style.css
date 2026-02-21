@@ -1,1050 +1,10 @@
 /* ============================================================
-   BASE
+   KILA CHATBOT — MOBILE FULLSCREEN FIX
+   Replace the existing chatbot CSS sections in your style.css
+   with these rules
    ============================================================ */
-html, body {
-    margin: 0;
-    padding: 0;
-    min-height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    font-family: 'Poppins', sans-serif;
-}
 
-.bg-video {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    min-width: 100%;
-    min-height: 100%;
-    object-fit: cover;
-    object-position: center center;
-    z-index: -1;
-}
-
-/* ============================================================
-   MAIN WRAPPER
-   ============================================================ */
-.main-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    min-height: 100vh;
-    padding-bottom: 80px;
-    box-sizing: border-box;
-}
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-.top-header {
-    position: relative;
-    width: 100%;
-    height: clamp(75px, 9vw, 110px);
-    background: rgba(74, 127, 189, 1);
-    padding: clamp(8px, 1.2vw, 20px);
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    z-index: 10;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-.top-header h1 {
-    margin: 0;
-    font-size: clamp(20px, 5vw, 30px);
-    font-weight: 700;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    white-space: nowrap;
-}
-.top-header p {
-    margin: 0;
-    font-size: clamp(14px, 2vw, 20px);
-    color: rgba(255,255,255,0.9);
-    white-space: nowrap;
-}
-
-/* ============================================================
-   SEARCH
-   ============================================================ */
-.search-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    padding: clamp(14px, 2vw, 28px) 0 clamp(8px, 1vw, 16px);
-    width: 100%;
-    pointer-events: auto !important;
-}
-.search-inner {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-.search-icon {
-    position: absolute;
-    left: clamp(10px, 1vw, 16px);
-    font-size: clamp(16px, 1.5vw, 22px);
-    color: rgba(255,255,255,0.7);
-    z-index: 201;
-    pointer-events: none !important;
-}
-.search-bar {
-    padding: clamp(8px, 0.9vw, 14px) clamp(10px, 1vw, 15px) clamp(8px, 0.9vw, 14px) clamp(35px, 3.5vw, 50px);
-    width: clamp(240px, 30vw, 520px);
-    border-radius: 12px;
-    border: none;
-    outline: none;
-    font-size: clamp(13px, 1.1vw, 17px);
-    background: rgba(236,227,227,0.18);
-    backdrop-filter: blur(50px);
-    color: white;
-    transition: 0.3s ease;
-    pointer-events: auto !important;
-    cursor: text !important;
-}
-.search-bar::placeholder { color: rgba(255,255,255,0.65); }
-.search-bar:focus {
-    background: rgba(236,227,227,0.28);
-    box-shadow: 0 0 10px rgba(255,255,255,0.2);
-    color: white !important;
-}
-
-/* ── HISTORY DROPDOWN ── */
-.search-history-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    max-height: 340px;
-    overflow-y: auto;
-    background: rgba(255,255,255,0.97);
-    backdrop-filter: blur(20px);
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    display: none;
-    z-index: 300;
-    padding: 6px 0;
-    border: 1px solid rgba(102,126,234,0.15);
-    pointer-events: auto !important;
-}
-.search-history-dropdown::-webkit-scrollbar { display: none; }
-.history-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: clamp(7px, 0.8vw, 11px) 14px;
-    cursor: pointer;
-    transition: background 0.18s ease;
-    border-bottom: 1px solid rgba(0,0,0,0.04);
-    user-select: none;
-    pointer-events: auto !important;
-}
-.history-item:last-child { border-bottom: none; }
-.history-item:hover      { background: rgba(102,126,234,0.09); }
-.history-icon { font-size: clamp(16px, 1.5vw, 22px); color: #667eea; flex-shrink: 0; }
-.history-text {
-    flex: 1;
-    color: #2d2d2d;
-    font-size: clamp(12px, 1vw, 15px);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.history-delete {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background 0.18s ease, opacity 0.18s ease;
-    opacity: 0;
-    flex-shrink: 0;
-    z-index: 10;
-    pointer-events: auto !important;
-}
-.history-item:hover .history-delete { opacity: 1; }
-.history-delete:hover { background: rgba(244,67,54,0.12); }
-.history-delete .material-symbols-outlined {
-    font-size: 18px;
-    color: #f44336;
-    pointer-events: none;
-    display: block;
-}
-
-/* ── ERROR MESSAGE ── */
-.error-msg {
-    display: block;
-    text-align: center;
-    margin: 0 auto clamp(6px, 1vw, 12px);
-    color: #ff4d4d;
-    font-weight: bold;
-    font-size: clamp(11px, 1vw, 15px);
-    background: rgba(0,0,0,0.6);
-    padding: 6px 14px;
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 1s ease;
-    pointer-events: none !important;
-    white-space: nowrap;
-    z-index: 200;
-    position: relative;
-}
-.error-msg.show { opacity: 1; }
-
-/* ============================================================
-   UNIT TOGGLE (°C / °F)
-   ============================================================ */
-.unit-toggle-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: clamp(8px, 1.2vw, 18px);
-    z-index: 10;
-    position: relative;
-}
-.unit-toggle {
-    display: flex;
-    background: rgba(0,0,0,0.35);
-    backdrop-filter: blur(14px);
-    border-radius: 30px;
-    padding: 4px;
-    border: 1px solid rgba(255,255,255,0.2);
-    gap: 4px;
-}
-.unit-btn {
-    padding: clamp(5px, 0.6vw, 9px) clamp(18px, 2.2vw, 32px);
-    border: none;
-    border-radius: 24px;
-    font-size: clamp(13px, 1.1vw, 17px);
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: transparent;
-    color: rgba(255,255,255,0.6);
-    letter-spacing: 0.5px;
-}
-.unit-btn.active {
-    background: rgba(255,255,255,0.9);
-    color: #2c5fa8;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-}
-.unit-btn:not(.active):hover {
-    background: rgba(255,255,255,0.12);
-    color: white;
-}
-
-/* ============================================================
-   CONTENT ROW — left-col + calendar side by side
-   ============================================================ */
-.content-row {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
-    gap: clamp(16px, 2.5vw, 36px);
-    width: 100%;
-    max-width: 1400px;
-    padding: 0 clamp(12px, 2vw, 40px);
-    box-sizing: border-box;
-    flex-wrap: wrap;
-}
-
-/* Left column: stacks bg-info + sun/moon panel */
-.left-column {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(12px, 1.5vw, 20px);
-    flex-shrink: 0;
-    width: clamp(300px, 55vw, 500px);
-}
-
-/* ============================================================
-   BG INFORMATION CONTAINER
-   ============================================================ */
-.bg-information-container {
-    position: relative;
-    width: 100%;
-    min-height: clamp(300px, 60vh, 680px);
-    border-radius: 5%;
-    background: rgba(77, 22, 94, 0.3);
-    backdrop-filter: blur(10px);
-    z-index: 5;
-    pointer-events: none;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 3% 4%;
-    box-sizing: border-box;
-    gap: clamp(10px, 2.5%, 20px);
-}
-
-@media (max-width: 900px) {
-    .left-column {
-        width: 90vw;
-    }
-    .bg-information-container {
-        min-height: unset;
-    }
-}
-
-/* ============================================================
-   GREETING OVERLAY
-   — Moved here from inline <style> in index.html
-   ============================================================ */
-#greetingOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(44, 49, 70, 0.75);
-    backdrop-filter: blur(12px);
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeInOverlay 0.5s ease;
-}
-
-@keyframes fadeInOverlay {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-#greetingOverlay.hide {
-    animation: fadeOutOverlay 0.5s ease forwards;
-}
-
-@keyframes fadeOutOverlay {
-    from { opacity: 1; }
-    to   { opacity: 0; }
-}
-
-.greeting-box {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 24px;
-    padding: clamp(30px, 4vw, 60px) clamp(30px, 5vw, 70px);
-    text-align: center;
-    color: rgb(255, 255, 255);
-    max-width: clamp(300px, 50vw, 520px);
-    width: 90vw;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    animation: slideUpBox 0.5s ease;
-}
-
-@keyframes slideUpBox {
-    from { transform: translateY(30px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-}
-
-.greeting-box .greeting-emoji {
-    font-size: clamp(40px, 6vw, 70px);
-    margin-bottom: 10px;
-    display: block;
-    animation: waveSun 2s ease-in-out infinite;
-}
-
-@keyframes waveSun {
-    0%,100% { transform: rotate(-10deg) scale(1);   }
-    50%      { transform: rotate(10deg)  scale(1.1); }
-}
-
-.greeting-box h2 {
-    font-size: clamp(18px, 2.8vw, 32px);
-    font-weight: 700;
-    margin: 0 0 6px;
-    font-family: 'Poppins', sans-serif;
-}
-
-.greeting-box p {
-    font-size: clamp(12px, 1.2vw, 16px);
-    opacity: 0.75;
-    margin: 0 0 24px;
-    font-family: 'Poppins', sans-serif;
-}
-
-.greeting-input-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-}
-
-#greetingNameInput {
-    flex: 1;
-    padding: clamp(9px, 1vw, 14px) clamp(14px, 1.5vw, 20px);
-    border-radius: 30px;
-    border: 2px solid rgba(255,255,255,0.3);
-    background: rgba(255,255,255,0.12);
-    color: white;
-    font-size: clamp(13px, 1.2vw, 17px);
-    font-family: 'Poppins', sans-serif;
-    outline: none;
-    transition: border-color 0.3s ease, background 0.3s ease;
-    min-width: 0;
-}
-
-#greetingNameInput::placeholder { color: rgba(255,255,255,0.5); }
-
-#greetingNameInput:focus {
-    border-color: rgba(255,255,255,0.7);
-    background: rgba(255,255,255,0.18);
-}
-
-#greetingSubmitBtn {
-    padding: clamp(9px, 1vw, 14px) clamp(18px, 2vw, 28px);
-    border-radius: 30px;
-    border: none;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    font-size: clamp(13px, 1.2vw, 17px);
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 15px rgba(102,126,234,0.5);
-}
-
-#greetingSubmitBtn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(102,126,234,0.7);
-}
-
-#greetingSubmitBtn:active { transform: scale(0.97); }
-
-/* ── Mobile greeting adjustments ── */
-@media (max-width: 480px) {
-    .greeting-input-row {
-        flex-direction: column;   /* stack input + button vertically on tiny screens */
-        gap: 12px;
-    }
-    #greetingNameInput {
-        width: 100%;
-    }
-    #greetingSubmitBtn {
-        width: 100%;
-    }
-}
-
-/* ============================================================
-   ARCH GREETING BANNER
-   — hidden by default; JS adds .visible to show it
-   ============================================================ */
-#archGreeting {
-    display: none;
-    width: 95%;
-    box-sizing: border-box;
-    align-self: center;
-    flex-shrink: 0;
-    padding: clamp(8px, 1vw, 13px) clamp(14px, 1.5vw, 22px);
-    background: rgba(73, 54, 54, 0.13);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-radius: 14px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
-    color: rgb(22, 20, 20);
-    font-family: 'Poppins', sans-serif;
-    font-size: clamp(12px, 1.1vw, 16px);
-    font-weight: 500;
-    text-align: center;
-    letter-spacing: 0.2px;
-}
-
-#archGreeting.visible {
-    display: block;
-    animation: archGreetingIn 0.5s ease;
-}
-
-@keyframes archGreetingIn {
-    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-/* ============================================================
-   SUN & MOON PANEL
-   ============================================================ */
-.sun-moon-panel {
-    width: 100%;
-    background: rgba(24, 60, 10, 0.5);
-    backdrop-filter: blur(18px);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    padding: clamp(14px, 2vw, 22px) clamp(16px, 2.5vw, 28px);
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(10px, 1.2vw, 16px);
-}
-
-.sun-moon-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-    font-size: clamp(13px, 1.3vw, 17px);
-    font-weight: 700;
-    padding-bottom: clamp(8px, 1vw, 12px);
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-    letter-spacing: 0.5px;
-}
-.sun-moon-header .material-symbols-outlined {
-    font-size: clamp(18px, 1.8vw, 24px);
-    color: #facc15;
-}
-
-/* ─ Arc ─ */
-.sun-arc-wrapper {
-    position: relative;
-    width: 100%;
-    padding-bottom: clamp(40px, 6vw, 70px);
-}
-
-.sun-arc-svg {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.sun-arc-dot {
-    position: absolute;
-    font-size: clamp(16px, 2vw, 24px);
-    transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 6px rgba(250,204,21,0.9));
-    transition: left 0.8s ease, top 0.8s ease;
-    pointer-events: none;
-    left: 50%;
-    top: 10%;
-}
-
-.sun-label {
-    position: absolute;
-    bottom: 0;
-    font-size: clamp(10px, 1vw, 13px);
-    color: rgba(255,255,255,0.75);
-    font-weight: 600;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-.sun-label.left  { left: 0; }
-.sun-label.right { right: 0; }
-.sun-label span  { color: white; font-size: clamp(11px, 1.1vw, 14px); }
-
-.sun-status-text {
-    text-align: center;
-    font-size: clamp(11px, 1.05vw, 14px);
-    color: rgba(255,255,255,0.8);
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 20px;
-    padding: 5px 14px;
-}
-
-.sun-moon-info-row {
-    display: flex;
-    gap: clamp(8px, 1.2vw, 16px);
-}
-.sun-moon-info-box {
-    flex: 1;
-    background: rgba(255,255,255,0.13);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 18px);
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 1vw, 14px);
-    transition: background 0.25s ease;
-}
-.smi-icon {
-    font-size: clamp(20px, 2.2vw, 30px);
-    color: #facc15;
-    flex-shrink: 0;
-}
-.moon-phase-icon {
-    font-size: clamp(22px, 2.5vw, 34px);
-    flex-shrink: 0;
-    line-height: 1;
-}
-.smi-content {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.smi-label {
-    font-size: clamp(9px, 0.85vw, 12px);
-    color: rgba(255,255,255,0.55);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 600;
-}
-.smi-value {
-    font-size: clamp(12px, 1.2vw, 17px);
-    font-weight: 700;
-    color: white;
-}
-
-/* ============================================================
-   14-DAY FORECAST CALENDAR
-   ============================================================ */
-.forecast-calendar {
-    flex: 1;
-    min-width: clamp(280px, 30vw, 420px);
-    max-width: 460px;
-    background: rgba(10, 30, 70, 0.45);
-    backdrop-filter: blur(18px);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    padding: clamp(14px, 2vw, 24px);
-    box-sizing: border-box;
-    align-self: flex-start;
-}
-
-.calendar-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-    font-size: clamp(14px, 1.4vw, 18px);
-    font-weight: 700;
-    margin-bottom: clamp(12px, 1.5vw, 20px);
-    padding-bottom: clamp(8px, 1vw, 14px);
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-    letter-spacing: 0.5px;
-}
-.calendar-header .material-symbols-outlined {
-    font-size: clamp(18px, 1.8vw, 24px);
-    color: #7eb8f7;
-}
-.cal-hint {
-    margin-left: auto;
-    font-size: clamp(9px, 0.8vw, 11px);
-    color: rgba(255,255,255,0.4);
-    font-weight: 400;
-    font-style: italic;
-    letter-spacing: 0.3px;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(6px, 1vw, 10px);
-}
-
-.cal-day-card {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: clamp(8px, 1vw, 14px) clamp(8px, 1.2vw, 14px);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: clamp(4px, 0.5vw, 8px);
-    transition: background 0.22s ease, transform 0.2s ease, border-color 0.22s ease, box-shadow 0.22s ease;
-    cursor: pointer;
-    user-select: none;
-}
-.cal-day-card:hover {
-    background: rgba(255,255,255,0.15);
-    border-color: rgba(126,184,247,0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-}
-.cal-day-card.today {
-    background: rgba(126,184,247,0.15);
-    border-color: rgba(126,184,247,0.45);
-}
-.cal-day-card.selected-day {
-    background: rgba(126,184,247,0.28);
-    border-color: rgba(126,184,247,0.9);
-    box-shadow: 0 0 0 2px rgba(126,184,247,0.5), 0 6px 20px rgba(0,0,0,0.25);
-    transform: translateY(-2px);
-}
-
-.cal-click-hint {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-.cal-click-hint .material-symbols-outlined {
-    font-size: clamp(14px, 1.4vw, 18px);
-    color: rgba(126,184,247,0.8);
-}
-.cal-day-card:hover .cal-click-hint,
-.cal-day-card.selected-day .cal-click-hint {
-    opacity: 1;
-}
-
-.cal-info { flex: 1; min-width: 0; }
-.cal-day-name {
-    font-size: clamp(11px, 1.05vw, 14px);
-    font-weight: 700;
-    color: white;
-    white-space: nowrap;
-}
-.cal-date-label {
-    font-size: clamp(9px, 0.75vw, 11px);
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 2px;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.est-tag {
-    font-size: clamp(7px, 0.65vw, 9px);
-    background: rgba(255,193,7,0.25);
-    color: rgba(255,193,7,0.85);
-    border-radius: 4px;
-    padding: 0 3px;
-    font-style: italic;
-}
-.cal-condition {
-    font-size: clamp(9px, 0.8vw, 11px);
-    color: rgba(255,255,255,0.65);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    margin-bottom: 3px;
-}
-.cal-temps {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-.cal-high {
-    font-size: clamp(12px, 1.1vw, 16px);
-    font-weight: 700;
-}
-.cal-sep {
-    color: rgba(255,255,255,0.3);
-    font-size: clamp(10px, 0.9vw, 13px);
-}
-.cal-low {
-    font-size: clamp(10px, 0.9vw, 13px);
-    color: rgba(255,255,255,0.5);
-}
-.cal-humidity {
-    font-size: clamp(8px, 0.75vw, 10px);
-    color: rgba(100,180,255,0.8);
-    margin-top: 2px;
-}
-
-.cal-shimmer {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 14px;
-    height: clamp(60px, 8vw, 90px);
-    animation: shimmer 1.4s ease-in-out infinite;
-}
-@keyframes shimmer {
-    0%,100% { opacity: 0.5; }
-    50% { opacity: 1; }
-}
-
-/* ============================================================
-   ARCH INFO
-   ============================================================ */
-.arch-info {
-    position: relative;
-    width: 95%;
-    height: clamp(180px, 32vh, 400px);
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #b4d2ff, #78aae6, #5a8cd2);
-    border-radius: 4%;
-    box-shadow: -20px 0 40px rgba(43, 42, 42, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: clamp(12px, 1.5vw, 24px);
-    box-sizing: border-box;
-    z-index: 4;
-    overflow: hidden;
-    transition: background 0.8s ease;
-    pointer-events: auto !important;
-}
-.arch-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-    color: white;
-    text-align: center;
-    gap: clamp(4px, 0.7vw, 12px);
-}
-#cityName {
-    position: absolute;
-    top: 2%;
-    left: 25%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 400px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    text-align: center;
-    font-size: clamp(10px, 1.6vw, 19px);
-    font-weight: 600;
-    color: white;
-    z-index: 8;
-    pointer-events: auto !important;
-}
-#cityText { word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
-.location-icon .material-symbols-outlined {
-    font-size: clamp(18px, 2.4vw, 32px);
-    color: white;
-}
-#temperature {
-    position: absolute;
-    top: 1%;
-    left: 75%;
-    transform: none;
-    font-size: clamp(14px, 3vw, 25px);
-    font-weight: bold;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    max-width: 55%;
-    pointer-events: auto !important;
-}
-#temperature .temp-icon {
-    font-size: clamp(12px, 2.5vw, 26px);
-    color: white;
-    flex-shrink: 0;
-}
-#condition {
-    position: absolute;
-    top: 65%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: clamp(12px, 1.4vw, 22px);
-    color: rgba(255,255,255,0.9);
-    text-transform: capitalize;
-    text-align: center;
-    white-space: nowrap;
-    pointer-events: auto !important;
-}
-.weather-icon-container {
-    position: absolute;
-    top: 56%;
-    left: 50%;
-    transform: translate(-65%, -60%);
-    width: clamp(40px, 30%, 130px);
-    height: clamp(40px, 30%, 130px);
-    pointer-events: none;
-    overflow: visible;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 3;
-}
-.arch-date {
-    position: absolute;
-    top: 85%;
-    left: 7%;
-    font-size: clamp(10px, 1vw, 13px);
-    color: white;
-    font-weight: 500;
-    z-index: 5;
-    background: rgba(0,0,0,0.3);
-    backdrop-filter: blur(10px);
-    padding: clamp(5px, 0.5vw, 9px) clamp(10px, 1vw, 18px);
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.2);
-    white-space: nowrap;
-    pointer-events: auto !important;
-}
-
-/* ============================================================
-   WEATHER CONDITIONS — 6 boxes, 3×2 grid
-   ============================================================ */
-.weather-conditions-container {
-    position: relative;
-    width: 100%;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-    justify-content: center;
-    gap: clamp(13px, 3.5%, 19px);
-    pointer-events: auto !important;
-    z-index: 9;
-    margin-top: clamp(6px, 1.5%, 14px);
-}
-.weather-condition-box {
-    position: relative;
-    flex: 1 1 30%;
-    max-width: 29%;
-    min-width: 0;
-    aspect-ratio: 1 / 1;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border-radius: clamp(6px, 2%, 14px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: clamp(3px, 1.5%, 10px);
-    box-sizing: border-box;
-    color: white;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    pointer-events: auto !important;
-    overflow: hidden;
-    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
-    transform: scale(1.05);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
-}
-.weather-condition-box .condition-icon {
-    font-size: clamp(10px, 3cqi, 24px);
-    margin-bottom: 2px;
-    opacity: 0.9;
-    line-height: 1;
-}
-.weather-condition-box .condition-label {
-    font-size: clamp(5px, 1.5cqi, 10px);
-    opacity: 0.85;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-}
-.weather-condition-box .condition-value {
-    font-size: clamp(8px, 2.5cqi, 18px);
-    font-weight: 700;
-    line-height: 1.1;
-    white-space: nowrap;
-}
-.weather-condition-box .condition-status {
-    font-size: clamp(5px, 1.2cqi, 9px);
-    margin-top: 2px;
-    padding: 1px 4px;
-    border-radius: 6px;
-    font-weight: 600;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-.condition-status.healthy   { background: rgba(76, 175, 80, 0.3);  color: #a5d6a7; }
-.condition-status.moderate  { background: rgba(255, 193, 7, 0.3);  color: #FFD54F; }
-.condition-status.unhealthy { background: rgba(244, 67, 54, 0.3);  color: #ef9a9a; }
-.humidity-condition   { background: linear-gradient(135deg, rgba(33,150,243,0.3),  rgba(100,181,246,0.3)); }
-.uv-condition         { background: linear-gradient(135deg, rgba(255,193,7,0.3),   rgba(255,152,0,0.3));   }
-.wind-condition       { background: linear-gradient(135deg, rgba(156,39,176,0.3),  rgba(171,71,188,0.3));  }
-.visibility-condition { background: linear-gradient(135deg, rgba(63,81,181,0.3),   rgba(92,107,192,0.3));  }
-.pressure-condition   { background: linear-gradient(135deg, rgba(0,188,212,0.3),   rgba(0,150,136,0.3));   }
-.feelslike-condition  { background: linear-gradient(135deg, rgba(233,30,99,0.3),   rgba(156,39,176,0.3));  }
-
-/* ============================================================
-   CUSTOM WEATHER ICONS
-   ============================================================ */
-.sun-icon { width: clamp(60px, 6.94vw, 110px); height: clamp(60px, 6.94vw, 110px); background: linear-gradient(135deg, #FFD700, #FFA500); border-radius: 50%; position: relative; box-shadow: 0 0 30px rgba(255,215,0,0.6); }
-.sun-icon::before {
-    content: '';
-    position: absolute;
-    width: clamp(84px, 9.72vw, 154px);
-    height: clamp(84px, 9.72vw, 154px);
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background:
-        radial-gradient(circle at 50% 0%,   rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 100% 50%,  rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 50% 100%,  rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 0% 50%,    rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 85% 15%,   rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 85% 85%,   rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 15% 85%,   rgba(255,215,0,0.8) 3px, transparent 3px),
-        radial-gradient(circle at 15% 15%,   rgba(255,215,0,0.8) 3px, transparent 3px);
-}
-.sun-icon.animated { animation: rotateSun 20s linear infinite, pulseSun 3s ease-in-out infinite; }
-@keyframes rotateSun { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes pulseSun {
-    0%,100% { transform: scale(1);   box-shadow: 0 0 30px rgba(255,215,0,0.6); }
-    50%      { transform: scale(1.1); box-shadow: 0 0 50px rgba(255,215,0,0.9); }
-}
-
-.moon-icon { width: clamp(60px, 6.94vw, 110px); height: clamp(60px, 6.94vw, 110px); background: linear-gradient(135deg, #F0E68C, #DAA520); border-radius: 50%; position: relative; box-shadow: 0 0 30px rgba(240,230,140,0.6); animation: glowMoon 4s ease-in-out infinite; }
-.moon-icon::after { content: ''; position: absolute; width: 80px; height: 80px; background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent); border-radius: 50%; top: -10px; right: -10px; box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2); }
-@keyframes glowMoon {
-    0%,100% { box-shadow: 0 0 30px rgba(240,230,140,0.6); }
-    50%      { box-shadow: 0 0 50px rgba(240,230,140,0.9); }
-}
-
-.cloud-icon { width: clamp(90px, 10.41vw, 160px); height: clamp(60px, 6.94vw, 108px); position: relative; }
-.cloud { width: 80px; height: 40px; background: linear-gradient(135deg, #ffffff, #e0e0e0); border-radius: 40px; position: absolute; top: 20px; left: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-.cloud::before { content: ''; width: 50px; height: 50px; background: linear-gradient(135deg, #ffffff, #f0f0f0); border-radius: 50%; position: absolute; top: -25px; left: 10px; }
-.cloud::after  { content: ''; width: 60px; height: 50px; background: linear-gradient(135deg, #ffffff, #e8e8e8); border-radius: 50%; position: absolute; top: -20px; right: 5px; }
-.cloud-icon.animated .cloud { animation: floatCloud 4s ease-in-out infinite; }
-@keyframes floatCloud { 0%,100% { transform: translateX(0); } 50% { transform: translateX(15px); } }
-
-.rain-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(72px, 8.33vw, 130px); position: relative; }
-.rain-cloud { width: 100px; height: 60px; background: linear-gradient(135deg, #78909C, #546E7A); border-radius: 40px; position: absolute; top: 10px; left: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-.rain-cloud::before { content: ''; width: 55px; height: 55px; background: linear-gradient(135deg, #90A4AE, #78909C); border-radius: 50%; position: absolute; top: -28px; left: 10px; }
-.rain-cloud::after  { content: ''; width: 65px; height: 55px; background: linear-gradient(135deg, #90A4AE, #607D8B); border-radius: 50%; position: absolute; top: -25px; right: 5px; }
-.rain-drop { width: 3px; height: 15px; background: linear-gradient(180deg, rgba(100,181,246,0.8), rgba(33,150,243,0.9)); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; position: absolute; animation: fallRain 1s linear infinite; }
-.rain-drop:nth-child(2) { left: 30px; top: 60px; animation-delay: 0s;   }
-.rain-drop:nth-child(3) { left: 50px; top: 60px; animation-delay: 0.2s; }
-.rain-drop:nth-child(4) { left: 70px; top: 60px; animation-delay: 0.4s; }
-.rain-drop:nth-child(5) { left: 90px; top: 60px; animation-delay: 0.6s; }
-@keyframes fallRain { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
-
-.thunder-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(84px, 9.72vw, 152px); position: relative; }
-.thunder-cloud { width: 110px; height: 50px; background: linear-gradient(135deg, #37474F, #263238); border-radius: 40px; position: absolute; top: 10px; left: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
-.thunder-cloud::before { content: ''; width: 60px; height: 60px; background: linear-gradient(135deg, #455A64, #37474F); border-radius: 50%; position: absolute; top: -30px; left: 10px; }
-.thunder-cloud::after  { content: ''; width: 70px; height: 60px; background: linear-gradient(135deg, #455A64, #263238); border-radius: 50%; position: absolute; top: -28px; right: 5px; }
-.lightning { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 40px solid #FDD835; position: absolute; top: 60px; left: 60px; filter: drop-shadow(0 0 10px rgba(253,216,53,0.8)); animation: flashLightning 1.5s ease-in-out infinite; }
-.lightning::after { content: ''; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 30px solid #FDD835; position: absolute; top: 40px; left: -14px; }
-@keyframes flashLightning { 0%,45%,55%,100% { opacity: 0; } 50% { opacity: 1; } }
-
-.snow-icon  { width: clamp(90px, 10.41vw, 160px); height: clamp(72px, 8.33vw, 130px); position: relative; }
-.snow-cloud { width: 100px; height: 45px; background: linear-gradient(135deg, #B0BEC5, #90A4AE); border-radius: 40px; position: absolute; top: 10px; left: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-.snow-cloud::before { content: ''; width: 55px; height: 55px; background: linear-gradient(135deg, #CFD8DC, #B0BEC5); border-radius: 50%; position: absolute; top: -28px; left: 10px; }
-.snow-cloud::after  { content: ''; width: 65px; height: 55px; background: linear-gradient(135deg, #CFD8DC, #90A4AE); border-radius: 50%; position: absolute; top: -25px; right: 5px; }
-.snowflake { color: white; font-size: clamp(14px, 1.4vw, 22px); position: absolute; animation: fallSnow 3s linear infinite; text-shadow: 0 0 5px rgba(255,255,255,0.8); }
-.snowflake:nth-child(2) { left: 30px; top: 60px; animation-delay: 0s;   }
-.snowflake:nth-child(3) { left: 55px; top: 60px; animation-delay: 0.5s; }
-.snowflake:nth-child(4) { left: 80px; top: 60px; animation-delay: 1s;   }
-@keyframes fallSnow { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(50px) rotate(360deg); opacity: 0; } }
-
-.mist-icon { width: clamp(160px, 20vw, 310px); height: clamp(60px, 7vw, 105px); position: relative; }
-.mist-line { width: 150px; height: 15px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); border-radius: 10px; position: absolute; left: 10px; animation: driftMist 3s ease-in-out infinite; }
-.mist-line:nth-child(1) { top: 25px; }
-.mist-line:nth-child(2) { top: 45px; width: 120px; left: 15px; animation-delay: 0.5s; }
-.mist-line:nth-child(3) { top: 65px; animation-delay: 1s; }
-@keyframes driftMist { 0%,100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(10px); opacity: 1; } }
-
-/* ============================================================
-   KILA CHATBOT
-   ============================================================ */
+/* Toggle button — keep above chatbox */
 .kila-toggle-btn {
     position: fixed;
     bottom: clamp(12px, 1.5vw, 24px);
@@ -1058,7 +18,7 @@ html, body {
     font-size: clamp(20px, 2.5vw, 32px);
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    z-index: 1000;
+    z-index: 1001; /* above chat container */
     transition: 0.3s ease;
     display: flex;
     align-items: center;
@@ -1068,6 +28,30 @@ html, body {
 .kila-toggle-btn:hover { transform: scale(1.1); box-shadow: 0 6px 25px rgba(102,126,234,0.5); }
 .kila-toggle-btn.active { background: linear-gradient(135deg, #764ba2, #667eea); }
 
+/* Globe toggle — keep above chatbox too */
+.globe-toggle-btn {
+    position: fixed;
+    bottom: clamp(12px, 1.5vw, 24px);
+    right: clamp(75px, 9vw, 115px);
+    width: clamp(44px, 5vw, 64px);
+    height: clamp(44px, 5vw, 64px);
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: clamp(20px, 2.5vw, 32px);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 1001; /* above chat container */
+    transition: 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto !important;
+}
+.globe-toggle-btn:hover { transform: scale(1.1) rotate(20deg); }
+
+/* ── DESKTOP: normal floating chat window ── */
 .chat-container {
     position: fixed;
     bottom: clamp(75px, 9vw, 100px);
@@ -1080,51 +64,67 @@ html, body {
     display: none;
     flex-direction: column;
     overflow: hidden;
-    z-index: 999;
+    z-index: 1000;
     pointer-events: auto !important;
 }
-.chat-container.active { display: flex; animation: slideUp 0.3s ease; }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.chat-container.active {
+    display: flex;
+    animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 
-.chat-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: clamp(10px, 1.2vw, 18px); display: flex; align-items: center; gap: 12px; }
-.bot-avatar  { width: clamp(34px, 3.5vw, 44px); height: clamp(34px, 3.5vw, 44px); background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: clamp(18px, 2vw, 26px); flex-shrink: 0; }
+/* Chat header */
+.chat-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: clamp(10px, 1.2vw, 18px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.bot-avatar {
+    width: clamp(34px, 3.5vw, 44px);
+    height: clamp(34px, 3.5vw, 44px);
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(18px, 2vw, 26px);
+    flex-shrink: 0;
+}
 .bot-info h2 { font-size: clamp(14px, 1.4vw, 20px); font-weight: 600; margin: 0; }
 .bot-info p  { font-size: clamp(10px, 0.9vw, 14px); opacity: 0.9; margin: 0; }
 
-.chat-messages { flex: 1; overflow-y: auto; padding: clamp(10px, 1.2vw, 18px); background: #f5f5f5; }
+/* Messages area */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: clamp(10px, 1.2vw, 18px);
+    background: #f5f5f5;
+    min-height: 0; /* critical for flex children to scroll */
+}
 .chat-messages::-webkit-scrollbar { display: none; }
 
-.message      { margin-bottom: 12px; display: flex; gap: 8px; }
-.message.user { flex-direction: row-reverse; }
-.message-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
-.message.bot  .message-avatar { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-.message.user .message-avatar { background: #4CAF50; color: white; }
-.message-content { max-width: 75%; padding: 10px 14px; border-radius: 12px; word-wrap: break-word; font-size: clamp(12px, 1vw, 15px); line-height: 1.4; white-space: pre-line; }
-.message.bot  .message-content { background: white; color: #333; border-bottom-left-radius: 4px; }
-.message.user .message-content { background: #4CAF50; color: white; border-bottom-right-radius: 4px; }
-
-.typing-indicator { display: none; padding: 10px 14px; background: white; border-radius: 12px; border-bottom-left-radius: 4px; width: fit-content; }
-.typing-indicator.active { display: block; }
-.typing-indicator span { display: inline-block; width: 7px; height: 7px; background: #667eea; border-radius: 50%; margin: 0 2px; animation: typing 1.4s infinite; }
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typing { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
-
-/* ── FIX: Chat input row — send button always visible on mobile ── */
+/* Input row */
 .chat-input-container {
     padding: clamp(10px, 1.2vw, 16px);
     background: white;
     border-top: 1px solid #e0e0e0;
     display: flex;
-    align-items: center;    /* vertically centre input + button */
+    align-items: center;
     gap: 8px;
-    flex-shrink: 0;         /* never let this row collapse */
+    flex-shrink: 0;
     box-sizing: border-box;
     width: 100%;
 }
 .chat-input {
     flex: 1;
-    min-width: 0;           /* allows flex child to shrink below content size */
+    min-width: 0;
     padding: 10px 14px;
     border: 2px solid #e0e0e0;
     border-radius: 20px;
@@ -1139,10 +139,9 @@ html, body {
 .chat-input:focus { border-color: #667eea; }
 
 .send-btn {
-    /* Fixed size so it never disappears when the input is wide */
     width: 44px;
     height: 44px;
-    min-width: 44px;        /* prevent flex from squishing it */
+    min-width: 44px;
     flex-shrink: 0;
     background: linear-gradient(135deg, #667eea, #764ba2);
     border: none;
@@ -1159,518 +158,50 @@ html, body {
 .send-btn:active { transform: scale(0.95); }
 .send-btn .material-symbols-outlined { font-size: 22px; }
 
-.weather-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px; border-radius: 8px; margin-top: 8px; }
-.weather-card h3 { margin-bottom: 8px; font-size: clamp(13px, 1.2vw, 17px); }
-.weather-info { display: flex; flex-direction: column; gap: 6px; }
-.weather-info-row { display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 0.95vw, 14px); }
-.weather-icon { font-size: clamp(28px, 3vw, 42px); text-align: center; margin: 8px 0; }
-
-.quick-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.suggestion-btn { padding: 6px 12px; background: #f0f0f0; border: none; border-radius: 15px; font-size: clamp(10px, 0.9vw, 13px); cursor: pointer; transition: 0.3s ease; font-family: "Poppins", sans-serif; pointer-events: auto !important; }
-.suggestion-btn:hover { background: #667eea; color: white; }
 
 /* ============================================================
-   3D GLOBE
+   MOBILE — FULLSCREEN CHATBOX (portrait phones ≤ 768px)
    ============================================================ */
-.globe-toggle-btn {
-    position: fixed;
-    bottom: clamp(12px, 1.5vw, 24px);
-    right: clamp(75px, 9vw, 115px);
-    width: clamp(44px, 5vw, 64px);
-    height: clamp(44px, 5vw, 64px);
-    background: linear-gradient(135deg, #00c6ff, #0072ff);
-    border: none;
-    border-radius: 50%;
-    color: white;
-    font-size: clamp(20px, 2.5vw, 32px);
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    z-index: 1000;
-    transition: 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto !important;
-}
-.globe-toggle-btn:hover { transform: scale(1.1) rotate(20deg); }
-
-.globe-section {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.95);
-    backdrop-filter: blur(10px);
-    z-index: 9999;
-    display: none;
-    overflow: hidden;
-    pointer-events: auto !important;
-}
-
-.globe-header {
-    padding: clamp(10px, 1.5vw, 22px);
-    background: linear-gradient(135deg, #00c6ff, #0072ff);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.globe-header h2 { color: white; font-size: clamp(14px, 1.8vw, 26px); margin: 0; font-weight: 600; }
-.globe-close-btn {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    font-size: clamp(22px, 2.5vw, 34px);
-    width: clamp(36px, 3.5vw, 46px);
-    height: clamp(36px, 3.5vw, 46px);
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.3s ease;
-    pointer-events: auto !important;
-}
-.globe-close-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
-
-/* ── FIX: Globe content — portrait mobile stacks properly ── */
-.globe-content {
-    display: flex;
-    gap: clamp(8px, 1.5vw, 22px);
-    padding: clamp(8px, 1.5vw, 22px);
-    /* Use the actual remaining height after the header */
-    height: calc(100vh - clamp(46px, 7vw, 78px));
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-/* Globe canvas fills all remaining height */
-.globe-container {
-    flex: 1;
-    position: relative;
-    background: rgba(0,0,0,0.3);
-    border-radius: 15px;
-    overflow: hidden;
-    border: 2px solid rgba(0,198,255,0.3);
-    touch-action: none;
-    /* Ensure it never collapses */
-    min-height: 0;
-}
-
-#globeViz { width: 100%; height: 100%; cursor: grab; }
-#globeViz:active { cursor: grabbing; }
-
-.globe-controls-overlay {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    z-index: 10;
-}
-.globe-control-btn {
-    width: clamp(32px, 3.5vw, 46px);
-    height: clamp(32px, 3.5vw, 46px);
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(0,198,255,0.5);
-    border-radius: 10px;
-    color: #00c6ff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    pointer-events: auto !important;
-}
-.globe-control-btn:hover  { background: rgba(0,198,255,0.25); border-color: #00c6ff; transform: scale(1.1); }
-.globe-control-btn:active { transform: scale(0.95); }
-.globe-control-btn .material-symbols-outlined { font-size: clamp(14px, 1.6vw, 22px); }
-
-.globe-arrow-controls { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 6px; }
-.globe-arrow-middle   { display: flex; gap: 4px; align-items: center; }
-.globe-arrow-btn {
-    width: clamp(28px, 3vw, 42px);
-    height: clamp(28px, 3vw, 42px);
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(0,198,255,0.4);
-    border-radius: 8px;
-    color: #00c6ff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-    user-select: none;
-    pointer-events: auto !important;
-}
-.globe-arrow-btn:hover  { background: rgba(0,198,255,0.25); border-color: #00c6ff; transform: scale(1.1); }
-.globe-arrow-btn:active { background: rgba(0,198,255,0.45); transform: scale(0.92); }
-.globe-arrow-btn .material-symbols-outlined { font-size: clamp(12px, 1.4vw, 20px); }
-
-.globe-info-overlay {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(10px);
-    padding: clamp(8px, 1.2vw, 17px);
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    border: 1px solid rgba(0,198,255,0.3);
-    min-width: clamp(130px, 18vw, 230px);
-    z-index: 10;
-}
-.globe-info-item { display: flex; align-items: center; gap: 8px; color: white; }
-.globe-info-item .material-symbols-outlined { font-size: clamp(16px, 2vw, 26px); color: #00c6ff; }
-.globe-info-label { font-size: clamp(8px, 0.85vw, 13px); opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
-.globe-info-value { font-size: clamp(11px, 1.3vw, 17px); font-weight: 600; color: white; word-break: break-word; }
-
-.globe-instructions {
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(10px);
-    padding: clamp(5px, 0.8vw, 12px) clamp(10px, 1.5vw, 22px);
-    border-radius: 20px;
-    color: white;
-    font-size: clamp(9px, 1vw, 14px);
-    border: 1px solid rgba(0,198,255,0.3);
-    white-space: nowrap;
-    z-index: 10;
-}
-
-/* Weather info sidebar */
-.globe-weather-boxes {
-    width: clamp(180px, 24vw, 320px);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(6px, 1vw, 14px);
-    overflow-y: auto;
-    padding-right: 2px;
-    flex-shrink: 0;
-}
-.globe-weather-boxes::-webkit-scrollbar { display: none; }
-
-.globe-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border: 2px dashed rgba(0,198,255,0.3); border-radius: 15px; }
-
-.globe-weather-box {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(15px);
-    border-radius: 15px;
-    padding: clamp(10px, 1.4vw, 20px);
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 1.2vw, 17px);
-    border: 2px solid rgba(0,198,255,0.3);
-    transition: 0.3s ease;
-    pointer-events: auto !important;
-}
-.globe-weather-box:hover { background: rgba(255,255,255,0.1); border-color: rgba(0,198,255,0.6); transform: translateX(-4px); }
-
-.globe-box-icon    { font-size: clamp(20px, 2.8vw, 40px); color: #00c6ff; flex-shrink: 0; }
-.globe-box-label   { font-size: clamp(8px, 0.85vw, 13px); color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.globe-box-value   { font-size: clamp(16px, 2.2vw, 28px); font-weight: 700; color: white; margin-bottom: 4px; }
-.globe-box-detail  { font-size: clamp(9px, 0.9vw, 13px); color: rgba(255,255,255,0.7); }
-
-.globe-loading { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-.globe-spinner { width: clamp(30px, 3.5vw, 48px); height: clamp(30px, 3.5vw, 48px); border: 4px solid rgba(0,198,255,0.2); border-top-color: #00c6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-
-/* Tablets / small laptops */
-@media (max-width: 1024px) {
-    .top-header h1 { font-size: clamp(16px, 2.2vw, 26px); }
-}
-
-/* ── GLOBE MOBILE: portrait phones ── */
 @media (max-width: 768px) {
-    .globe-content {
-        flex-direction: column;       /* stack globe above weather boxes */
-        padding: 8px;
-        gap: 8px;
-        /* Full height minus the header bar */
-        height: calc(100vh - 54px);
-        overflow-y: auto;
-    }
 
-    .globe-container {
-        /* Globe canvas takes most of the screen */
-        flex: 0 0 55vh;
-        height: 55vh;
-        width: 100%;
-        min-height: 260px;
-    }
-
-    .globe-weather-boxes {
-        /* Horizontal scrolling row of cards */
-        width: 100%;
-        flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
-        flex-shrink: 0;
-        padding-bottom: 4px;
-        gap: 8px;
-    }
-
-    .globe-weather-box {
-        min-width: 160px;
-        flex-shrink: 0;
-    }
-
-    .globe-empty-state {
-        min-width: 180px;
-    }
-
-    /* Smaller overlay info panel so it doesn't block the globe */
-    .globe-info-overlay {
-        padding: 8px 10px;
-        gap: 6px;
-        min-width: unset;
-        max-width: 55vw;
-    }
-
-    /* Tuck instructions text to a smaller font */
-    .globe-instructions {
-        font-size: 10px;
-        padding: 5px 10px;
-        white-space: normal;
-        text-align: center;
-        width: 80%;
-    }
-}
-
-/* Very small phones */
-@media (max-width: 400px) {
-    .globe-container {
-        flex: 0 0 45vh;
-        height: 45vh;
-    }
-}
-
-/* ── MAIN CONTENT MOBILE ── */
-@media (max-width: 900px) {
-    .content-row {
-        flex-direction: column;
-        align-items: center;
-        padding: 0 clamp(12px, 4vw, 24px);
-    }
-    .left-column {
-        width: 90vw;
-    }
-    .bg-information-container {
-        min-height: unset;
-    }
-    .forecast-calendar {
-        width: 90vw;
-        max-width: 100%;
-        min-width: unset;
-    }
-    .calendar-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .sun-moon-panel {
-        width: 100%;
-    }
-    #archGreeting {
-        width: 100%;
-    }
-}
-
-/* ── CHATBOX MOBILE ── */
-@media (max-width: 480px) {
-    /* Make the chat window fill the screen width */
-    .chat-container {
-        right: 0;
+    /* When chat is OPEN: cover the entire screen */
+    .chat-container.active {
+        position: fixed;
+        top: 0;
         left: 0;
-        width: 100vw;
-        border-radius: 15px 15px 0 0;
+        right: 0;
         bottom: 0;
-        /* Leave space for the toggle button above */
-        height: calc(100vh - 70px);
-        max-height: 100vh;
+        width: 100vw;
+        height: 100%;          /* fill full screen */
+        height: 100dvh;        /* dynamic viewport for mobile browsers */
+        border-radius: 0;
+        z-index: 2000;         /* above toggle buttons */
     }
 
-    /* Ensure input row uses full width and button stays visible */
+    /* Push toggle buttons behind the open chat */
+    .kila-toggle-btn.active {
+        z-index: 2001;         /* still tappable to close */
+        bottom: max(16px, env(safe-area-inset-bottom));
+        right: 16px;
+    }
+
+    /* Input row: account for iPhone home indicator */
     .chat-input-container {
         padding: 10px 12px;
-        padding-bottom: max(10px, env(safe-area-inset-bottom)); /* iPhone home bar */
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
     }
 
-    .calendar-grid {
-        grid-template-columns: 1fr;
+    /* Messages scroll area fills remaining space */
+    .chat-messages {
+        flex: 1;
+        min-height: 0;
     }
-
-    .search-bar { width: clamp(200px, 80vw, 340px); }
 }
 
-/* ============================================================
-   GLOBE WEATHER PANEL — collapsible, resizable
-   ============================================================ */
-
-/* Replace old .globe-weather-boxes with new panel structure */
-.globe-weather-panel {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    width: 280px;
-    min-width: 160px;
-    max-width: 420px;
-    flex-shrink: 0;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(18px);
-    border-radius: 16px;
-    border: 1px solid rgba(0,198,255,0.25);
-    overflow: hidden;
-    transition: width 0.05s ease;
-}
-
-/* ── Resize handle on left edge ── */
-.globe-panel-resize-handle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 10px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    transition: background 0.2s ease;
-}
-.globe-panel-resize-handle:hover,
-.globe-panel-resize-handle.dragging {
-    background: rgba(0,198,255,0.15);
-}
-.resize-dots {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    pointer-events: none;
-}
-.resize-dots span {
-    display: block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: rgba(0,198,255,0.5);
-}
-.globe-panel-resize-handle:hover .resize-dots span,
-.globe-panel-resize-handle.dragging .resize-dots span {
-    background: #00c6ff;
-}
-
-/* ── Panel header ── */
-.globe-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px 8px 16px;
-    border-bottom: 1px solid rgba(0,198,255,0.2);
-    flex-shrink: 0;
-    gap: 8px;
-}
-.globe-panel-title {
-    font-size: clamp(12px, 1.1vw, 15px);
-    font-weight: 700;
-    color: white;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-}
-.globe-panel-controls {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-
-/* ── Cards scroll area ── */
-.globe-weather-boxes {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 12px 10px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(6px, 1vw, 12px);
-}
-.globe-weather-boxes::-webkit-scrollbar { width: 4px; }
-.globe-weather-boxes::-webkit-scrollbar-track { background: transparent; }
-.globe-weather-boxes::-webkit-scrollbar-thumb { background: rgba(0,198,255,0.3); border-radius: 4px; }
-
-/* UV box accent */
-.globe-uv-box { border-color: rgba(255,193,7,0.4); }
-.globe-uv-box .globe-box-icon { color: #facc15; }
-
-/* ── Panel toggle button (on globe edge) ── */
-.globe-panel-toggle-btn {
-    position: absolute;
-    right: -1px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 22px;
-    height: 48px;
-    background: rgba(0,198,255,0.18);
-    backdrop-filter: blur(8px);
-    border: 2px solid rgba(0,198,255,0.4);
-    border-radius: 10px 0 0 10px;
-    color: #00c6ff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 15;
-    transition: background 0.2s ease;
-    pointer-events: auto !important;
-}
-.globe-panel-toggle-btn:hover {
-    background: rgba(0,198,255,0.35);
-}
-.globe-panel-toggle-btn .material-symbols-outlined {
-    font-size: 18px;
-    pointer-events: none;
-}
-
-/* ── Mobile: panel becomes a horizontal row at bottom ── */
-@media (max-width: 768px) {
-    .globe-weather-panel {
-        width: 100% !important;
-        min-width: unset;
-        max-width: unset;
-        flex-direction: row;
-        height: auto;
-        border-radius: 12px;
-        flex-shrink: 0;
+/* ── Very small phones ── */
+@media (max-width: 400px) {
+    .chat-container.active {
+        height: 100%;
+        height: 100dvh;
     }
-    .globe-panel-resize-handle { display: none; }
-    .globe-panel-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 8px 10px;
-        border-bottom: none;
-        border-right: 1px solid rgba(0,198,255,0.2);
-        flex-shrink: 0;
-        width: auto;
-    }
-    .globe-panel-controls { flex-wrap: wrap; gap: 4px; }
-    .globe-weather-boxes {
-        flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding: 8px 8px;
-        align-items: stretch;
-    }
-    .globe-weather-box { min-width: 150px; flex-shrink: 0; }
-    .globe-panel-toggle-btn { display: none; }
 }
