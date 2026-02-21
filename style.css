@@ -101,18 +101,18 @@ html, body {
     border: none;
     outline: none;
     font-size: clamp(13px, 1.1vw, 17px);
-    background: rgba(173, 170, 170, 0.30);
+    background: rgba(185, 182, 182, 0.3);
     backdrop-filter: blur(80px);
-    color: rgb(243, 236, 236);
+    color: rgb(158, 150, 150);
     transition: 0.3s ease;
     pointer-events: auto !important;
     cursor: text !important;
 }
-.search-bar::placeholder { color: rgba(90, 87, 87, 0.65); }
+.search-bar::placeholder { color: rgba(39, 38, 38, 0.65); }
 .search-bar:focus {
-    background: rgba(218, 211, 211, 0.28);
-    box-shadow: 0 0 10px rgba(219, 208, 208, 0.2);
-    color: white !important;
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    color: rgb(255, 255, 255) !important;
 }
 
 /* ── HISTORY DROPDOWN ── */
