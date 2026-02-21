@@ -935,171 +935,6 @@ function hideGlobeInitLoading() {
     }
 }
 
-// ─── SEARCH BAR ──────────────────────────────────────────
-function buildGlobeSearchBar() {
-    const container = document.querySelector('.globe-container');
-    if (!container || document.getElementById('globeSearchWrapper')) return;
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'globe-search-wrapper';
-    wrapper.id = 'globeSearchWrapper';
-    wrapper.innerHTML = `
-        <div class="globe-search-inner" id="globeSearchInner">
-            <span class="globe-search-icon material-symbols-outlined">travel_explore</span>
-            <input type="text" id="globeSearchInput" placeholder="Search any city…" autocomplete="off" inputmode="search" />
-            <button class="globe-search-clear-btn" id="globeSearchClearBtn" title="Clear">✕</button>
-            <button class="globe-search-btn" id="globeSearchBtn">Go</button>
-        </div>
-        <div class="globe-search-dropdown" id="globeSearchDropdown"></div>
-    `;
-    container.appendChild(wrapper);
-
-    const input    = document.getElementById('globeSearchInput');
-    const dropdown = document.getElementById('globeSearchDropdown');
-    const clearBtn = document.getElementById('globeSearchClearBtn');
-    const goBtn    = document.getElementById('globeSearchBtn');
-
-    let suggestionIndex = -1;
-
-    function renderSuggestions(query) {
-        dropdown.innerHTML = '';
-        if (!query.trim()) { dropdown.classList.remove('open'); return; }
-        const q = query.toLowerCase().trim();
-        const matches = worldCities.filter(c =>
-            c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
-        ).slice(0, 8);
-
-        if (matches.length === 0) {
-            dropdown.innerHTML = `<div class="globe-search-no-results">No cities found for "${query}"</div>`;
-            dropdown.classList.add('open');
-            return;
-        }
-        matches.forEach((city, idx) => {
-            const item = document.createElement('div');
-            item.className = 'globe-suggestion-item';
-            item.dataset.idx = idx;
-            const cacheKey = `${city.name},${city.country}`;
-            const temp = cityTempCache[cacheKey];
-            const tempStr = temp !== undefined ? `${Math.round(temp)}°C` : '';
-            const tempDot = `<span style="width:8px;height:8px;border-radius:50%;background:${getTempColor(temp??estimateTempFromLatitude(city.lat))};display:inline-block;margin-right:6px;border:1px solid rgba(255,255,255,0.3);flex-shrink:0;"></span>`;
-            item.innerHTML = `
-                <span class="globe-sugg-icon material-symbols-outlined">location_on</span>
-                ${tempDot}
-                <span class="globe-sugg-name">${city.name}</span>
-                <span class="globe-sugg-country">${city.country}</span>
-                ${city.capital ? '<span class="globe-sugg-capital">Capital</span>' : ''}
-                ${tempStr ? `<span style="margin-left:auto;font-size:10px;color:rgba(255,255,255,0.5);padding-left:8px;">${tempStr}</span>` : ''}
-            `;
-            item.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                flyToCity(city);
-                input.value = city.name;
-                dropdown.classList.remove('open');
-                clearBtn.classList.toggle('visible', !!input.value);
-                input.blur();
-            });
-            item.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                flyToCity(city);
-                input.value = city.name;
-                dropdown.classList.remove('open');
-                clearBtn.classList.toggle('visible', !!input.value);
-            });
-            dropdown.appendChild(item);
-        });
-        dropdown.classList.add('open');
-        suggestionIndex = -1;
-    }
-
-    input.addEventListener('input', () => {
-        renderSuggestions(input.value);
-        clearBtn.classList.toggle('visible', !!input.value);
-    });
-
-    input.addEventListener('keydown', (e) => {
-        const items = dropdown.querySelectorAll('.globe-suggestion-item');
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
-            items.forEach((el, i) => el.classList.toggle('active', i === suggestionIndex));
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            suggestionIndex = Math.max(suggestionIndex - 1, -1);
-            items.forEach((el, i) => el.classList.toggle('active', i === suggestionIndex));
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (suggestionIndex >= 0 && items[suggestionIndex]) {
-                items[suggestionIndex].dispatchEvent(new Event('mousedown'));
-            } else {
-                globeSearchGo();
-            }
-        } else if (e.key === 'Escape') {
-            dropdown.classList.remove('open');
-            input.blur();
-        }
-        e.stopPropagation();
-    });
-
-    input.addEventListener('focus', () => { if (input.value) renderSuggestions(input.value); });
-    input.addEventListener('blur',  () => { setTimeout(() => dropdown.classList.remove('open'), 200); });
-
-    clearBtn.addEventListener('click', () => {
-        input.value = '';
-        dropdown.classList.remove('open');
-        clearBtn.classList.remove('visible');
-        input.focus();
-    });
-    clearBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        input.value = '';
-        dropdown.classList.remove('open');
-        clearBtn.classList.remove('visible');
-        input.focus();
-    });
-
-    goBtn.addEventListener('click', globeSearchGo);
-    goBtn.addEventListener('touchend', (e) => { e.preventDefault(); globeSearchGo(); });
-}
-
-function globeSearchGo() {
-    const input = document.getElementById('globeSearchInput');
-    if (!input) return;
-    const q = input.value.trim().toLowerCase();
-    if (!q) return;
-    const match = worldCities.find(c => c.name.toLowerCase() === q || c.name.toLowerCase().startsWith(q));
-    if (match) {
-        flyToCity(match);
-        document.getElementById('globeSearchDropdown').classList.remove('open');
-    } else {
-        handleGlobeSearchByName(input.value.trim());
-    }
-}
-
-async function handleGlobeSearchByName(cityName) {
-    if (!cityName) return;
-    showGlobeWeatherLoading();
-    try {
-        const data = await fetchWithRetry(
-            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cityName)}&units=metric&appid=${apiKey}`,
-            {}, 2, 6000
-        );
-        const lat = data.coord.lat, lng = data.coord.lon;
-        const name = data.name;
-        document.getElementById('globeCity').textContent   = `${name}, ${data.sys.country}`;
-        document.getElementById('globeCoords').textContent = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
-        globe.pointOfView({ lat, lng, altitude: 1.5 }, 1200);
-        currentPOV = { lat, lng, altitude: 1.5 };
-        globeRotating = false;
-        showPinAt(lat, lng);
-        fetchGlobeWeather(lat, lng, name);
-        setTimeout(() => { globeRotating = true; }, 5000);
-    } catch(err) {
-        hideGlobeWeatherLoading();
-        document.getElementById('globeCity').textContent = `City "${cityName}" not found`;
-        showGlobeError(`Could not find "${cityName}". Try searching a different city.`);
-    }
-}
-
 function flyToCity(city) {
     if (!globe) return;
     globeRotating = false;
@@ -1325,8 +1160,10 @@ function initGlobe() {
     globe.pointOfView({ lat: 14.5995, lng: 120.9842, altitude: 2.5 }, 1000);
     currentPOV = { lat: 14.5995, lng: 120.9842, altitude: 2.5 };
 
-    // Disable built-in controls on mobile to use custom ones
-    isMobile() && globe.controls && globe.controls() && (globe.controls().enableZoom = false);
+    // Disable built-in controls on mobile to use custom touch gestures
+    if (window.innerWidth <= 768 && globe.controls && globe.controls()) {
+        globe.controls().enableZoom = false;
+    }
 
     // Hide init loader after globe renders
     setTimeout(() => {
@@ -1336,7 +1173,6 @@ function initGlobe() {
         setupGlobeControls();
         setupMobileGestures();
         initPanelResize();
-        buildGlobeSearchBar();
         buildTempLegend();
         ensurePinEl();
         document.addEventListener('keydown', handleGlobeKeyboard);
@@ -1345,7 +1181,7 @@ function initGlobe() {
 }
 
 function isMobile() {
-    return window.innerWidth <= 768 || ('ontouchstart' in window);
+    return window.innerWidth <= 768;
 }
 
 // ─── MOBILE TOUCH GESTURES ───────────────────────────────

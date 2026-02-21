@@ -638,7 +638,7 @@ html, body {
 
 .globe-content { display: flex; flex-direction: row; align-items: stretch; gap: 5px; padding: 5px; height: calc(100vh - clamp(38px, 5.5vw, 60px)); box-sizing: border-box; overflow: hidden; }
 
-.globe-container { flex: 1 1 0%; min-width: 0; position: relative; background: rgba(0,0,0,0.3); border-radius: 14px; overflow: hidden; border: 2px solid rgba(0,198,255,0.3); touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.globe-container { flex: 1 1 0%; min-width: 0; position: relative; background: rgba(0,0,0,0.3); border-radius: 14px; overflow: hidden; border: 2px solid rgba(0,198,255,0.3); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 #globeViz { width: 100%; height: 100%; cursor: grab; }
 #globeViz:active { cursor: grabbing; }
@@ -692,31 +692,9 @@ html, body {
 .globe-panel-toggle-btn .material-symbols-outlined { font-size: 16px; pointer-events: none; }
 
 /* ── Globe Search Bar ── */
-.globe-search-wrapper { position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 20; width: clamp(240px, 44vw, 460px); display: flex; flex-direction: column; align-items: stretch; pointer-events: auto !important; top: 85%; }
-.globe-search-inner { display: flex; align-items: center; width: 100%; background: rgba(0,0,0,0.82); backdrop-filter: blur(20px); border: 1.5px solid rgba(0,198,255,0.55); border-radius: 10px; box-shadow: 0 4px 28px rgba(0,0,0,0.5); overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
-.globe-search-inner:focus-within { border-color: #46b4cf; box-shadow: 0 4px 32px rgba(0,198,255,0.35); border-radius: 10px 10px 0 0; }
-.globe-search-icon { padding: 0 10px 0 14px; color: #00c6ff; font-size: clamp(16px, 1.8vw, 22px); flex-shrink: 0; pointer-events: none; display: flex; align-items: center; }
 #globeSearchInput { flex: 1; background: transparent; border: none; outline: none; color: white; font-size: clamp(12px, 1.1vw, 15px); font-family: 'Poppins', sans-serif; padding: clamp(9px, 1vw, 13px) 4px; min-width: 0; caret-color: #00c6ff; -webkit-appearance: none; }
 #globeSearchInput::placeholder { color: rgba(255,255,255,0.4); font-style: italic; }
-.globe-search-clear-btn { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 0 8px; display: none; align-items: center; font-size: 18px; transition: color 0.2s; touch-action: manipulation; }
-.globe-search-clear-btn:hover { color: #00c6ff; }
-.globe-search-clear-btn.visible { display: flex; }
-.globe-search-btn { padding: clamp(8px, 1vw, 12px) clamp(14px, 1.6vw, 20px); background: linear-gradient(135deg, #00c6ff, #0072ff); border: none; color: white; font-size: clamp(11px, 1vw, 14px); font-weight: 600; font-family: 'Poppins', sans-serif; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.globe-search-btn:hover  { opacity: 0.85; }
-.globe-search-btn:active { opacity: 0.7; }
 
-.globe-search-dropdown { width: 100%; background: rgba(5,12,30,0.97); backdrop-filter: blur(24px); border: 1px solid rgba(0,198,255,0.35); border-top: none; border-radius: 0 0 18px 18px; max-height: 220px; overflow-y: auto; display: none; z-index: 21; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
-.globe-search-dropdown.open { display: block; }
-.globe-search-dropdown::-webkit-scrollbar { width: 3px; }
-.globe-search-dropdown::-webkit-scrollbar-thumb { background: rgba(0,198,255,0.35); border-radius: 4px; }
-.globe-suggestion-item { display: flex; align-items: center; gap: 10px; padding: clamp(10px, 1vw, 13px) 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; pointer-events: auto !important; touch-action: manipulation; min-height: 44px; /* iOS tap target */ }
-.globe-suggestion-item:last-child { border-bottom: none; }
-.globe-suggestion-item:hover, .globe-suggestion-item.active { background: rgba(0,198,255,0.18); }
-.globe-sugg-icon    { font-size: 15px; color: #00c6ff; flex-shrink: 0; }
-.globe-sugg-name    { color: white; font-size: clamp(12px, 1vw, 14px); font-weight: 600; }
-.globe-sugg-country { color: rgba(255,255,255,0.45); font-size: clamp(9px, 0.8vw, 11px); margin-left: 5px; }
-.globe-sugg-capital { margin-left: auto; font-size: 9px; background: rgba(0,198,255,0.2); color: #00c6ff; border-radius: 1px; padding: 1px 5px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
-.globe-search-no-results { padding: 14px 16px; color: rgba(255,255,255,0.45); font-size: 13px; text-align: center; font-style: italic; }
 
 /* Location Pin */
 #globeSelectedPin { position: absolute; pointer-events: none; z-index: 12; display: none; flex-direction: column; align-items: center; transform: translate(-50%, -100%); }
@@ -774,7 +752,6 @@ html, body {
     .globe-info-label { font-size: 8px; }
     .globe-info-value { font-size: 11px; }
     .globe-instructions { font-size: 9px; padding: 4px 10px; white-space: normal; text-align: center; width: 80%; bottom: 8px; }
-    .globe-search-wrapper { width: calc(100% - 24px); left: 12px; transform: none; bottom: auto; top: auto; position: absolute; bottom: 50px; }
     .globe-temp-legend { display: none; }
     #globeSelectedPin { display: none !important; }
     .globe-controls-overlay { top: 8px; right: 8px; gap: 4px; }
